@@ -7,8 +7,8 @@ export type IereParroquia = {
 /** Parroquias IERE España para el selector de registro. */
 export const iereParroquias: IereParroquia[] = [
   { zona: "Centro", ciudad: "Madrid", nombre: "Catedral del Redentor" },
-  { zona: "Centro", ciudad: "Madrid", nombre: "San Pablo" },
-  { zona: "Centro", ciudad: "Móstoles", nombre: "Comunidad Anglicana de Móstoles" },
+  { zona: "Centro", ciudad: "Torrejón de Ardóz", nombre: "San Pablo" },
+  { zona: "Centro", ciudad: "Móstoles", nombre: "El Buen Pastor" },
   { zona: "Centro", ciudad: "Alcorcón", nombre: "Comunidad Anglicana de Alcorcón" },
   { zona: "Centro", ciudad: "Salamanca", nombre: "Iglesia de Salamanca (Atilano Coco)" },
   { zona: "Norte", ciudad: "Valladolid", nombre: "Comunidad de Valladolid" },
