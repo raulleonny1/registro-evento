@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { getFirestoreLazy } from "@/lib/firestoreClient";
 import { formatFirebaseError } from "@/lib/firebaseError";
@@ -178,13 +179,21 @@ export default function AdminPanel() {
             <span className="font-semibold text-white">{rows.length}</span>{" "}
             {rows.length === 1 ? "registro" : "registros"}
           </p>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="touch-manipulation rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-zinc-200 transition hover:bg-white/10 active:scale-[0.98] sm:py-2"
-          >
-            Actualizar lista
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/admin/recaudacion"
+              className="touch-manipulation rounded-xl border border-rose-500/35 bg-rose-600/15 px-4 py-3 text-sm font-semibold text-rose-100 transition hover:bg-rose-600/25 active:scale-[0.98] sm:py-2"
+            >
+              Resumen de recaudación
+            </Link>
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="touch-manipulation rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-zinc-200 transition hover:bg-white/10 active:scale-[0.98] sm:py-2"
+            >
+              Actualizar lista
+            </button>
+          </div>
         </div>
 
         {/* Vista escritorio: tabla */}
