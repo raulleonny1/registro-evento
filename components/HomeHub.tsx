@@ -1,87 +1,155 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Inter, Playfair_Display } from "next/font/google";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "600", "700"],
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
+
+function ArrowIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-6 w-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M14 5l7 7m0 0l-7 7m7-7H3"
+      />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-6 w-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+      />
+    </svg>
+  );
+}
+
+const glassRegistro =
+  "border border-gray-200/50 bg-white/80 backdrop-blur-md shadow-xl transition-[transform,box-shadow] duration-200 ease-out active:scale-[0.98]";
+
+const glassAdmin =
+  "border-2 border-dashed border-slate-200 bg-slate-50/80 backdrop-blur-md shadow-md transition-[transform,box-shadow] duration-200 ease-out active:scale-[0.98]";
 
 export function HomeHub() {
   return (
-    <main className="relative min-h-[100dvh] overflow-x-hidden bg-gradient-to-b from-rose-50 via-white to-violet-50/60 text-zinc-900 dark:from-zinc-950 dark:via-zinc-950 dark:to-rose-950/30 dark:text-zinc-50">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(225,29,72,0.14),transparent)] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(225,29,72,0.12),transparent)]"
-        aria-hidden
-      />
+    <main
+      className={`${inter.className} text-slate-800 antialiased`}
+      style={{
+        background: "linear-gradient(180deg, #fff5f5 0%, #ffffff 100%)",
+      }}
+    >
+      <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col items-center px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))]">
+        {/* Logo */}
+        <div className="mb-8 rounded-3xl border border-red-50 bg-white p-4 shadow-sm [filter:drop-shadow(0_4px_6px_rgba(0,0,0,0.05))]">
+          <Image
+            src="/logo-iere.jpg"
+            alt="IERE — Iglesia Española Reformada Episcopal"
+            width={240}
+            height={180}
+            className="h-24 w-auto max-w-[200px] object-contain"
+            priority
+            sizes="200px"
+          />
+        </div>
 
-      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col justify-center px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:px-6">
-        <header className="mb-8 text-center sm:mb-10">
-          <figure className="mx-auto mb-5 flex justify-center sm:mb-6">
-            <div className="rounded-2xl border border-rose-200/70 bg-white/90 p-3 shadow-md shadow-rose-900/[0.06] ring-1 ring-white/60 dark:border-rose-500/25 dark:bg-zinc-900/85 dark:ring-white/5">
-              <Image
-                src="/logo-iere.jpg"
-                alt="IERE — Iglesia Española Reformada Episcopal"
-                width={280}
-                height={140}
-                className="h-[72px] w-auto max-w-[200px] object-contain sm:h-[84px] sm:max-w-[220px]"
-                priority
-                sizes="(max-width: 640px) 200px, 220px"
-              />
-            </div>
-          </figure>
-          <p className="mb-3 inline-flex items-center justify-center rounded-full border border-rose-200/80 bg-white/80 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-rose-800 shadow-sm backdrop-blur-sm dark:border-rose-500/30 dark:bg-zinc-900/80 dark:text-rose-200">
+        {/* Badge */}
+        <div className="mb-4">
+          <span className="inline-block rounded-full bg-red-100 px-4 py-1 text-xs font-bold uppercase tracking-widest text-red-700">
             IERE · 2026
-          </p>
-          <h1 className="text-balance px-1 text-xl font-bold leading-snug tracking-tight text-zinc-900 sm:text-2xl md:text-3xl dark:text-white">
-            Encuentro Nacional de Mujeres IERE
+          </span>
+        </div>
+
+        {/* Título */}
+        <div className="mb-8 text-center">
+          <h1 className="mb-2 text-3xl font-bold leading-tight tracking-tight text-slate-900">
+            Encuentro Nacional <br />
+            de Mujeres IERE
           </h1>
-          <p className="mt-3 text-base font-semibold text-rose-800 sm:text-lg md:text-xl dark:text-rose-300">
+          <p className="mb-4 text-lg font-semibold text-red-700">
             25 al 27 de septiembre de 2026
           </p>
-          <p className="mx-auto mt-4 max-w-md text-balance font-serif text-base italic leading-relaxed text-zinc-700 sm:text-lg md:text-xl dark:text-zinc-300">
+          <p className={`${playfair.className} text-xl italic text-slate-500`}>
             &ldquo;Cada Don, una Misión&rdquo;
           </p>
-          <p className="mx-auto mt-5 max-w-sm text-pretty text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-            Elige si deseas inscribirte al evento o acceder a la administración.
-          </p>
-        </header>
+        </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+        <p className="mb-10 max-w-sm px-2 text-center text-sm leading-relaxed text-slate-500">
+          Elige si deseas inscribirte al evento o acceder al panel de administración.
+        </p>
+
+        {/* Tarjetas */}
+        <div className="w-full space-y-4">
           <Link
             href="/registro"
-            className="group flex min-h-[140px] touch-manipulation flex-col justify-between rounded-2xl border border-rose-200/80 bg-white/90 p-5 shadow-xl shadow-rose-900/10 transition active:scale-[0.99] hover:border-rose-300 hover:shadow-rose-900/20 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:hover:border-rose-500/40 sm:min-h-0 sm:p-6"
+            className={`${glassRegistro} group flex w-full touch-manipulation items-center justify-between rounded-3xl p-6 text-left`}
           >
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-300">
+            <div className="min-w-0 flex-1">
+              <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-red-600">
                 Participantes
               </span>
-              <span className="mt-2 block text-lg font-bold text-zinc-900 dark:text-white">
-                Registro
-              </span>
-              <span className="mt-2 block text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              <h2 className="mb-1 text-xl font-bold text-slate-900">Registro</h2>
+              <p className="text-xs leading-relaxed text-slate-500">
                 Inscripción, comprobante y seguimiento de tu solicitud.
-              </span>
+              </p>
             </div>
-            <span className="mt-4 text-sm font-semibold text-rose-700 group-hover:underline dark:text-rose-400">
-              Continuar →
-            </span>
+            <div className="ml-4 shrink-0 rounded-2xl bg-red-600 p-3 text-white transition-colors group-hover:bg-red-700">
+              <ArrowIcon />
+            </div>
           </Link>
 
           <Link
             href="/admin"
-            className="group flex min-h-[140px] touch-manipulation flex-col justify-between rounded-2xl border border-zinc-200/80 bg-white/90 p-5 shadow-xl shadow-zinc-900/5 transition active:scale-[0.99] hover:border-zinc-300 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:hover:border-zinc-500 sm:min-h-0 sm:p-6"
+            className={`${glassAdmin} group flex w-full touch-manipulation items-center justify-between rounded-3xl p-6 text-left`}
           >
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            <div className="min-w-0 flex-1">
+              <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 Organización
               </span>
-              <span className="mt-2 block text-lg font-bold text-zinc-900 dark:text-white">
-                Administración
-              </span>
-              <span className="mt-2 block text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                Revisar inscripciones y check-in (código de acceso requerido).
-              </span>
+              <h2 className="mb-1 text-xl font-bold text-slate-700">Administración</h2>
+              <p className="text-xs leading-relaxed text-slate-500">
+                Revisar inscripciones y check-in (código requerido).
+              </p>
             </div>
-            <span className="mt-4 text-sm font-semibold text-zinc-700 group-hover:underline dark:text-zinc-300">
-              Entrar →
-            </span>
+            <div className="ml-4 shrink-0 rounded-2xl bg-slate-200 p-3 text-slate-600 transition-colors group-hover:bg-slate-300">
+              <LockIcon />
+            </div>
           </Link>
         </div>
+
+        <footer className="mt-auto pt-12 text-center text-[10px] uppercase tracking-[0.2em] text-slate-400">
+          Iglesia Española Reformada Episcopal
+        </footer>
       </div>
     </main>
   );
