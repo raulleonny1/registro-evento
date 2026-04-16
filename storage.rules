@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Comprobantes subidos a comprobantes/{registroId}/...
+// Ajusta en producción (tamaño, tipos MIME, etc.).
+//
+// Despliegue: Firebase Console → Storage → Reglas
+// O CLI: firebase deploy --only storage
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /comprobantes/{allPaths=**} {
+      allow read, write: if true;
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

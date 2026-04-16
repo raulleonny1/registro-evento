@@ -4,7 +4,32 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { formatFirebaseError } from "@/lib/firebaseError";
 import { iereParroquias, labelParroquia, zonasIereEnOrden } from "@/lib/iereParroquias";
+
+const SUBMIT_TIMEOUT_MS = 35_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => {
+      reject(
+        new Error(
+          `${label} superó ${ms / 1000}s. Comprueba conexión, reglas de Firestore (colección registros) y que el proyecto tenga Firestore activado.`,
+        ),
+      );
+    }, ms);
+    promise.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      },
+    );
+  });
+}
 
 const inputClass =
   "min-h-[48px] w-full rounded-xl border border-zinc-200 bg-white px-4 text-base text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 " +
@@ -41,21 +66,25 @@ export function RegistroForm() {
 
     setLoading(true);
     try {
-      const ref = await addDoc(collection(db, "registros"), {
-        nombre: nombreApellidos.trim(),
-        email: email.trim().toLowerCase(),
-        whatsapp: whatsapp.trim(),
-        parroquia: {
-          zona: parroquia.zona,
-          ciudad: parroquia.ciudad,
-          nombre: parroquia.nombre,
-        },
-        estado: "pendiente",
-        fecha: serverTimestamp(),
-      });
-      router.push(`/estado/${ref.id}`);
+      const ref = await withTimeout(
+        addDoc(collection(db, "registros"), {
+          nombre: nombreApellidos.trim(),
+          email: email.trim().toLowerCase(),
+          whatsapp: whatsapp.trim(),
+          parroquia: {
+            zona: parroquia.zona,
+            ciudad: parroquia.ciudad,
+            nombre: parroquia.nombre,
+          },
+          estado: "pendiente",
+          fecha: serverTimestamp(),
+        }),
+        SUBMIT_TIMEOUT_MS,
+        "El registro",
+      );
+      await router.push(`/estado/${ref.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo registrar");
+      setError(formatFirebaseError(err));
     } finally {
       setLoading(false);
     }
