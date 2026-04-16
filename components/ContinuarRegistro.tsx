@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatFirebaseError } from "@/lib/firebaseError";
+import { SubirComprobante } from "@/components/SubirComprobante";
 import {
   esPendientePago,
   etiquetaEstado,
@@ -111,6 +112,29 @@ export function ContinuarRegistro() {
       setLoading(false);
     }
   }
+
+  async function refrescarSeleccionado() {
+    if (!selected) return;
+    try {
+      const snap = await getDoc(doc(db, "registros", selected.id));
+      if (!snap.exists()) return;
+      const x = snap.data();
+      setSelected({
+        id: snap.id,
+        nombre: String(x.nombre ?? ""),
+        email: String(x.email ?? ""),
+        estado: normalizeEstado(String(x.estado ?? "")),
+        comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
+      });
+    } catch {
+      /* ignorar */
+    }
+  }
+
+  const puedeSubirComprobante =
+    selected &&
+    (esPendientePago(selected.estado) ||
+      normalizeEstado(selected.estado) === REGISTRO_ESTADOS.revision);
 
   const fieldClass =
     "min-h-[52px] w-full touch-manipulation rounded-xl border border-zinc-200 bg-white px-4 py-3.5 text-base text-zinc-900 shadow-sm outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-500/15 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100";
@@ -228,6 +252,23 @@ export function ContinuarRegistro() {
               {etiquetaEstado(selected.estado)}
             </span>
           </p>
+
+          {puedeSubirComprobante && (
+            <div className="mt-6 rounded-2xl border border-rose-200/80 bg-white/80 p-4 dark:border-rose-500/25 dark:bg-zinc-900/50">
+              <p className="mb-3 text-sm font-semibold text-zinc-900 dark:text-white">
+                Subir comprobante de pago
+              </p>
+              <p className="mb-4 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                Archivo o foto. Si la subida tarda mucho, comprueba la conexión o prueba un PDF.
+              </p>
+              <SubirComprobante
+                key={`${selected.id}-${selected.estado}`}
+                id={selected.id}
+                onUploaded={() => void refrescarSeleccionado()}
+              />
+            </div>
+          )}
+
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Link
               href={`/estado/${selected.id}`}
@@ -235,17 +276,6 @@ export function ContinuarRegistro() {
             >
               Ver estado del registro
             </Link>
-            {(esPendientePago(selected.estado) ||
-              normalizeEstado(selected.estado) === REGISTRO_ESTADOS.revision) && (
-              <Link
-                href={`/subir/${selected.id}`}
-                className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-800 dark:border-rose-500/40 dark:bg-zinc-900 dark:text-rose-200"
-              >
-                {esPendientePago(selected.estado) || !selected.comprobanteURL
-                  ? "Subir comprobante"
-                  : "Cambiar comprobante"}
-              </Link>
-            )}
             <Link
               href={`/registro/codigo`}
               className="inline-flex min-h-[48px] items-center justify-center rounded-xl text-sm font-semibold text-rose-700 underline dark:text-rose-400"

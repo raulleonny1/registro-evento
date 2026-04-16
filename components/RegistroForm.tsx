@@ -122,7 +122,7 @@ export function RegistroForm() {
         SUBMIT_TIMEOUT_MS,
         "El registro",
       );
-      await router.push(`/estado/${ref.id}`);
+      await router.push(`/registro/nuevo/exito?id=${encodeURIComponent(ref.id)}`);
     } catch (err) {
       setError(formatFirebaseError(err));
     } finally {

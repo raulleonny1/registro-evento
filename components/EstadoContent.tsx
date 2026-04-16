@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { SubirComprobante } from "@/components/SubirComprobante";
 import { REGISTRO_ESTADOS, esPendientePago, normalizeEstado } from "@/lib/registroEstados";
 
 export type ParroquiaDoc = {
@@ -33,7 +32,6 @@ export type RegistroDoc = {
 export function EstadoContent({ id }: { id: string }) {
   const [data, setData] = useState<RegistroDoc | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
-  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,11 +52,7 @@ export function EstadoContent({ id }: { id: string }) {
     return () => {
       cancelled = true;
     };
-  }, [id, refresh]);
-
-  function refetch() {
-    setRefresh((n) => n + 1);
-  }
+  }, [id]);
 
   if (error) {
     return <p className="text-red-600">{error}</p>;
@@ -78,17 +72,22 @@ export function EstadoContent({ id }: { id: string }) {
         <div className="rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
           <p className="font-semibold">Pendiente de pago</p>
           <p className="mt-2 leading-relaxed">
-            Realiza la transferencia por el importe indicado por el organizador. Cuando hayas
-            pagado, sube el comprobante (captura o PDF) con el formulario de abajo.
+            Realiza la transferencia por el importe indicado por el organizador. Cuando hayas hecho el
+            depósito, entra en{" "}
+            <Link href="/registro/continuar" className="font-semibold text-amber-900 underline dark:text-amber-200">
+              Continuar registro
+            </Link>{" "}
+            (últimos 4 dígitos del teléfono o ID) y sube ahí el comprobante: archivo o foto desde el
+            móvil.
           </p>
         </div>
-        <SubirComprobante id={id} onUploaded={refetch} />
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          También puedes usar la página dedicada:{" "}
-          <Link href={`/subir/${id}`} className="font-medium text-rose-700 underline dark:text-rose-400">
-            subir comprobante
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          <Link
+            href="/registro/continuar"
+            className="inline-flex w-fit rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900"
+          >
+            Ir a Continuar registro
           </Link>
-          .
         </p>
       </div>
     );
@@ -101,9 +100,13 @@ export function EstadoContent({ id }: { id: string }) {
           Tu comprobante está en revisión. Te avisaremos cuando el pago quede confirmado.
         </p>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Si necesitas reemplazar el archivo, contacta al organizador o vuelve a intentar desde{" "}
+          Para enviar otro archivo, usa{" "}
+          <Link href="/registro/continuar" className="font-medium text-rose-700 underline dark:text-rose-400">
+            Continuar registro
+          </Link>{" "}
+          o{" "}
           <Link href={`/subir/${id}`} className="text-rose-700 underline dark:text-rose-400">
-            subir comprobante
+            esta página de subida
           </Link>
           .
         </p>
