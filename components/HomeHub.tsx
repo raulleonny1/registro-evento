@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export function HomeHub() {
@@ -10,6 +11,19 @@ export function HomeHub() {
 
       <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col justify-center px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:px-6">
         <header className="mb-8 text-center sm:mb-10">
+          <figure className="mx-auto mb-5 flex justify-center sm:mb-6">
+            <div className="rounded-2xl border border-rose-200/70 bg-white/90 p-3 shadow-md shadow-rose-900/[0.06] ring-1 ring-white/60 dark:border-rose-500/25 dark:bg-zinc-900/85 dark:ring-white/5">
+              <Image
+                src="/logo-iere.jpg"
+                alt="IERE — Iglesia Española Reformada Episcopal"
+                width={280}
+                height={140}
+                className="h-[72px] w-auto max-w-[200px] object-contain sm:h-[84px] sm:max-w-[220px]"
+                priority
+                sizes="(max-width: 640px) 200px, 220px"
+              />
+            </div>
+          </figure>
           <p className="mb-3 inline-flex items-center justify-center rounded-full border border-rose-200/80 bg-white/80 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-rose-800 shadow-sm backdrop-blur-sm dark:border-rose-500/30 dark:bg-zinc-900/80 dark:text-rose-200">
             IERE · 2026
           </p>
