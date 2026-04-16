@@ -2,17 +2,13 @@
 
 import { useRef, useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { formatFirebaseError } from "@/lib/firebaseError";
 import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
 
 const ACCEPT = "image/*,.pdf,application/pdf";
-const READ_FILE_TIMEOUT_MS = 120_000;
 const UPLOAD_TIMEOUT_MS = 180_000;
-const GET_URL_TIMEOUT_MS = 45_000;
 const FIRESTORE_TIMEOUT_MS = 30_000;
-/** Evita subidas enormes que suelen fallar en móvil (MB). */
 const MAX_BYTES = 15 * 1024 * 1024;
 
 type Props = {
@@ -42,7 +38,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
-/** Cámara / explorador: inferir extensión si falta nombre o tipo. */
+/** Cámara / explorador: inferir extensión si falta nombre. */
 function inferExt(file: File): string {
   const fromName = file.name?.split(".").pop();
   if (fromName && fromName.length <= 8 && /^[a-z0-9]+$/i.test(fromName)) {
@@ -57,65 +53,46 @@ function inferExt(file: File): string {
   return "jpg";
 }
 
-function resolveContentType(file: File, ext: string): string {
-  if (file.type && file.type.length > 0) return file.type;
-  if (ext === "pdf") return "application/pdf";
-  if (ext === "png") return "image/png";
-  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
-  if (ext === "webp") return "image/webp";
-  if (ext === "heic" || ext === "heif") return "image/heic";
-  return "application/octet-stream";
-}
-
 /**
- * Lee el archivo completo a memoria (evita bloqueos al subir `File` desde
- * explorador/OneDrive en algunos navegadores).
+ * Sube el archivo a Cloudinary vía API Route (el secreto no sale al navegador).
+ * Usa XHR para poder mostrar progreso de subida al servidor.
  */
-async function readFileAsUint8Array(file: File): Promise<Uint8Array> {
-  const buf = await file.arrayBuffer();
-  return new Uint8Array(buf);
-}
-
-type UploadTask = ReturnType<typeof uploadBytesResumable>;
-
-/**
- * Sube con tarea reanudable: cancela al vencer el tiempo; un solo listener para progreso y fin.
- */
-function runUploadTask(
-  task: UploadTask,
-  timeoutMs: number,
+function uploadToCloudinary(
+  file: File,
+  registroId: string,
   onProgress: (pct: number) => void,
-): Promise<void> {
+): Promise<string> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      try {
-        task.cancel();
-      } catch {
-        /* */
-      }
-      reject(
-        new Error(
-          `La subida superó ${Math.round(timeoutMs / 1000)} s. Prueba Wi‑Fi, un PDF o una foto más pequeña.`,
-        ),
-      );
-    }, timeoutMs);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("registroId", registroId);
 
-    task.on(
-      "state_changed",
-      (snap) => {
-        if (snap.totalBytes > 0) {
-          onProgress(Math.round((100 * snap.bytesTransferred) / snap.totalBytes));
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/upload-comprobante");
+    xhr.timeout = UPLOAD_TIMEOUT_MS;
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && e.total > 0) {
+        onProgress(Math.round((100 * e.loaded) / e.total));
+      }
+    };
+
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText) as { url?: string; error?: string };
+        if (xhr.status >= 200 && xhr.status < 300 && data.url) {
+          resolve(data.url);
+          return;
         }
-      },
-      (err) => {
-        clearTimeout(timer);
-        reject(err);
-      },
-      () => {
-        clearTimeout(timer);
-        resolve();
-      },
-    );
+        reject(new Error(data.error || `Error del servidor (${xhr.status})`));
+      } catch {
+        reject(new Error("Respuesta inválida del servidor."));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error("Error de red al subir."));
+    xhr.ontimeout = () => reject(new Error("La subida tardó demasiado (tiempo agotado)."));
+    xhr.send(formData);
   });
 }
 
@@ -147,25 +124,11 @@ export function SubirComprobante({ id, onUploaded }: Props) {
 
     setLoading(true);
     try {
-      const ext = inferExt(f);
-      const safeName = `${Date.now()}.${ext}`;
-      const path = `comprobantes/${id}/${safeName}`;
-      const storageRef = ref(storage, path);
-      const contentType = resolveContentType(f, ext);
-
-      const bytes = await withTimeout(
-        readFileAsUint8Array(f),
-        READ_FILE_TIMEOUT_MS,
-        "Leer el archivo en el dispositivo",
-      );
-
-      const task = uploadBytesResumable(storageRef, bytes, { contentType });
-      await runUploadTask(task, UPLOAD_TIMEOUT_MS, (pct) => setProgressPct(pct));
-
+      setProgressPct(0);
       const comprobanteURL = await withTimeout(
-        getDownloadURL(storageRef),
-        GET_URL_TIMEOUT_MS,
-        "Obtener enlace del archivo",
+        uploadToCloudinary(f, id, (pct) => setProgressPct(pct)),
+        UPLOAD_TIMEOUT_MS,
+        "Subir comprobante",
       );
 
       await withTimeout(

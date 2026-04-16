@@ -10,12 +10,12 @@ export async function deleteComprobanteFiles(
   registroId: string,
   comprobanteURL?: string,
 ): Promise<void> {
-  if (comprobanteURL) {
+  if (comprobanteURL?.includes("firebasestorage.googleapis.com")) {
     try {
       const r = ref(storage, comprobanteURL);
       await deleteObject(r);
     } catch {
-      /* URL inválida, otro bucket o archivo ya borrado */
+      /* URL inválida o archivo ya borrado */
     }
   }
 
