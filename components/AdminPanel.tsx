@@ -7,6 +7,8 @@ type Row = {
   id: string;
   nombre: string;
   email: string;
+  whatsapp: string;
+  parroquiaLabel: string;
   estado: string;
   comprobanteURL?: string;
 };
@@ -23,10 +25,22 @@ export default function AdminPanel() {
       const snap = await getDocs(collection(db, "registros"));
       const list: Row[] = snap.docs.map((d) => {
         const x = d.data();
+        const par = x.parroquia as { ciudad?: string; nombre?: string } | undefined;
+        const parroquiaLabel = par
+          ? `${String(par.ciudad ?? "")} — ${String(par.nombre ?? "")}`
+          : "—";
+        const wa =
+          typeof x.whatsapp === "string"
+            ? x.whatsapp
+            : typeof x.telefono === "string"
+              ? x.telefono
+              : "";
         return {
           id: d.id,
           nombre: String(x.nombre ?? ""),
           email: String(x.email ?? ""),
+          whatsapp: wa,
+          parroquiaLabel,
           estado: String(x.estado ?? ""),
           comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
         };
@@ -95,11 +109,13 @@ export default function AdminPanel() {
         Actualizar lista
       </button>
       <div className="overflow-x-auto rounded border border-zinc-200 dark:border-zinc-700">
-        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[880px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
               <th className="p-2">Nombre</th>
               <th className="p-2">Email</th>
+              <th className="p-2">WhatsApp</th>
+              <th className="p-2">Parroquia</th>
               <th className="p-2">Estado</th>
               <th className="p-2">Comprobante</th>
               <th className="p-2">Acciones</th>
@@ -110,6 +126,8 @@ export default function AdminPanel() {
               <tr key={r.id} className="border-b border-zinc-100 dark:border-zinc-800">
                 <td className="p-2 align-top">{r.nombre}</td>
                 <td className="p-2 align-top">{r.email}</td>
+                <td className="p-2 align-top whitespace-nowrap">{r.whatsapp || "—"}</td>
+                <td className="max-w-[200px] p-2 align-top text-xs leading-snug">{r.parroquiaLabel}</td>
                 <td className="p-2 align-top">{r.estado}</td>
                 <td className="p-2 align-top">
                   {r.comprobanteURL ? (

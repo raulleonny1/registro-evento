@@ -44,8 +44,8 @@ export default function Home() {
         </section>
 
         <p className="mt-8 text-center text-xs text-zinc-500 dark:text-zinc-500">
-          Al enviar aceptas recibir comunicaciones relacionadas con este evento en el correo y
-          teléfono indicados.
+          Al enviar aceptas recibir comunicaciones relacionadas con este evento en el correo y el
+          WhatsApp indicados.
         </p>
       </div>
     </main>

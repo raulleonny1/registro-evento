@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { iereParroquias, labelParroquia, zonasIereEnOrden } from "@/lib/iereParroquias";
 
 const inputClass =
   "min-h-[48px] w-full rounded-xl border border-zinc-200 bg-white px-4 text-base text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 " +
@@ -11,25 +12,44 @@ const inputClass =
   "dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 " +
   "dark:focus:border-rose-500 dark:focus:ring-rose-500/20";
 
+const selectClass = `${inputClass} cursor-pointer`;
+
 const labelClass = "text-sm font-medium text-zinc-700 dark:text-zinc-300";
 
 export function RegistroForm() {
   const router = useRouter();
-  const [nombre, setNombre] = useState("");
+  const [nombreApellidos, setNombreApellidos] = useState("");
   const [email, setEmail] = useState("");
-  const [telefono, setTelefono] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [parroquiaIdx, setParroquiaIdx] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const zonas = useMemo(() => zonasIereEnOrden(), []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    const idx = parseInt(parroquiaIdx, 10);
+    if (Number.isNaN(idx) || idx < 0 || idx >= iereParroquias.length) {
+      setError("Selecciona una parroquia válida.");
+      return;
+    }
+
+    const parroquia = iereParroquias[idx];
+
     setLoading(true);
     try {
       const ref = await addDoc(collection(db, "registros"), {
-        nombre: nombre.trim(),
-        email: email.trim(),
-        telefono: telefono.trim(),
+        nombre: nombreApellidos.trim(),
+        email: email.trim().toLowerCase(),
+        whatsapp: whatsapp.trim(),
+        parroquia: {
+          zona: parroquia.zona,
+          ciudad: parroquia.ciudad,
+          nombre: parroquia.nombre,
+        },
         estado: "pendiente",
         fecha: serverTimestamp(),
       });
@@ -45,7 +65,7 @@ export function RegistroForm() {
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div className="space-y-2">
         <label htmlFor="reg-nombre" className={labelClass}>
-          Nombre completo
+          Nombre y apellidos
         </label>
         <input
           id="reg-nombre"
@@ -54,9 +74,9 @@ export function RegistroForm() {
           autoComplete="name"
           type="text"
           enterKeyHint="next"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          placeholder="Tal como figura en tu identificación"
+          value={nombreApellidos}
+          onChange={(e) => setNombreApellidos(e.target.value)}
+          placeholder="Ej. María García López"
           className={inputClass}
         />
       </div>
@@ -79,22 +99,55 @@ export function RegistroForm() {
         />
       </div>
       <div className="space-y-2">
-        <label htmlFor="reg-telefono" className={labelClass}>
-          Teléfono (WhatsApp)
+        <label htmlFor="reg-whatsapp" className={labelClass}>
+          WhatsApp
         </label>
         <input
-          id="reg-telefono"
-          name="telefono"
+          id="reg-whatsapp"
+          name="whatsapp"
           required
           autoComplete="tel"
           type="tel"
           inputMode="tel"
-          enterKeyHint="done"
-          value={telefono}
-          onChange={(e) => setTelefono(e.target.value)}
-          placeholder="+52 o código de tu país"
+          enterKeyHint="next"
+          value={whatsapp}
+          onChange={(e) => setWhatsapp(e.target.value)}
+          placeholder="Ej. +34 612 345 678"
           className={inputClass}
         />
+      </div>
+      <div className="space-y-2">
+        <label htmlFor="reg-parroquia" className={labelClass}>
+          Parroquia IERE (España)
+        </label>
+        <select
+          id="reg-parroquia"
+          name="parroquia"
+          required
+          value={parroquiaIdx}
+          onChange={(e) => setParroquiaIdx(e.target.value)}
+          className={selectClass}
+        >
+          <option value="" disabled>
+            Selecciona tu parroquia
+          </option>
+          {zonas.map((zona) => (
+            <optgroup key={zona} label={zona}>
+              {iereParroquias
+                .map((p, globalIdx) => ({ p, globalIdx }))
+                .filter(({ p }) => p.zona === zona)
+                .map(({ p, globalIdx }) => (
+                  <option key={`${p.ciudad}-${p.nombre}-${globalIdx}`} value={String(globalIdx)}>
+                    {labelParroquia(p)}
+                  </option>
+                ))}
+            </optgroup>
+          ))}
+        </select>
+        <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+          Elige la comunidad o misión donde participas. Si no aparece, selecciona la más cercana y
+          coméntalo en el comprobante o con tu organizadora.
+        </p>
       </div>
       {error && (
         <p

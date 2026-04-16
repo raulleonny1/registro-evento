@@ -11,6 +11,8 @@ type ResultAllow = {
   kind: "allow";
   nombre: string;
   email: string;
+  whatsapp?: string;
+  parroquiaLine?: string;
   estadoPago: string;
 };
 
@@ -19,6 +21,8 @@ type ResultDeny = {
   titulo: string;
   nombre?: string;
   email?: string;
+  whatsapp?: string;
+  parroquiaLine?: string;
   estadoPago: string;
 };
 
@@ -125,6 +129,13 @@ export default function CheckInClient() {
         const nombre = String(d.nombre ?? "");
         const email = String(d.email ?? "");
         const estado = String(d.estado ?? "");
+        const whatsappRaw = d.whatsapp ?? d.telefono;
+        const whatsapp = typeof whatsappRaw === "string" ? whatsappRaw : "";
+        const par = d.parroquia as { ciudad?: string; nombre?: string } | undefined;
+        const parroquiaLine =
+          par && (par.ciudad || par.nombre)
+            ? `${String(par.ciudad ?? "")} — ${String(par.nombre ?? "")}`
+            : undefined;
 
         if (estado === "aprobado") {
           playFeedback(true);
@@ -132,6 +143,8 @@ export default function CheckInClient() {
             kind: "allow",
             nombre,
             email,
+            whatsapp: whatsapp || undefined,
+            parroquiaLine,
             estadoPago: estadoPagoLabel(estado),
           });
         } else {
@@ -145,6 +158,8 @@ export default function CheckInClient() {
             titulo: "NO PUEDE ENTRAR",
             nombre: nombre || undefined,
             email: email || undefined,
+            whatsapp: whatsapp || undefined,
+            parroquiaLine,
             estadoPago: motivo,
           });
         }
@@ -274,11 +289,23 @@ export default function CheckInClient() {
         {ok ? (
           <>
             <p className="text-5xl font-extrabold leading-tight sm:text-6xl">{result.nombre}</p>
-            <div className="mt-2 space-y-1 text-lg opacity-95">
+            <div className="mt-2 max-w-lg space-y-2 text-lg opacity-95">
               <p>
                 <span className="text-white/80">Email: </span>
                 {result.email}
               </p>
+              {result.whatsapp && (
+                <p>
+                  <span className="text-white/80">WhatsApp: </span>
+                  {result.whatsapp}
+                </p>
+              )}
+              {result.parroquiaLine && (
+                <p className="text-base">
+                  <span className="text-white/80">Parroquia: </span>
+                  {result.parroquiaLine}
+                </p>
+              )}
               <p>
                 <span className="text-white/80">Estado de pago: </span>
                 {result.estadoPago}
@@ -292,6 +319,12 @@ export default function CheckInClient() {
             )}
             {"email" in result && result.email && (
               <p className="text-lg opacity-90">{result.email}</p>
+            )}
+            {"whatsapp" in result && result.whatsapp && (
+              <p className="text-base opacity-90">WhatsApp: {result.whatsapp}</p>
+            )}
+            {"parroquiaLine" in result && result.parroquiaLine && (
+              <p className="max-w-lg text-base opacity-90">Parroquia: {result.parroquiaLine}</p>
             )}
             <p className="max-w-md text-xl font-medium leading-snug sm:text-2xl">{result.estadoPago}</p>
           </>

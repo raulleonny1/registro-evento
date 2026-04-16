@@ -5,10 +5,19 @@ import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
+export type ParroquiaDoc = {
+  zona: string;
+  ciudad: string;
+  nombre: string;
+};
+
 export type RegistroDoc = {
   nombre: string;
   email: string;
-  telefono: string;
+  /** Legacy */
+  telefono?: string;
+  whatsapp?: string;
+  parroquia?: ParroquiaDoc;
   estado: string;
   comprobanteURL?: string;
   qr?: string;
