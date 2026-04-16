@@ -180,6 +180,21 @@ export default function CheckInClient() {
   const processIdRef = useRef(processId);
   processIdRef.current = processId;
 
+  /* iOS/Safari: el vídeo debe ir en línea y silenciado para que la cámara funcione bien */
+  useEffect(() => {
+    if (view !== "cam") return;
+    const t = window.setInterval(() => {
+      const el = document.querySelector(`#${READER_ID} video`);
+      if (el instanceof HTMLVideoElement) {
+        el.setAttribute("playsinline", "");
+        el.setAttribute("webkit-playsinline", "");
+        el.muted = true;
+        window.clearInterval(t);
+      }
+    }, 80);
+    return () => window.clearInterval(t);
+  }, [view]);
+
   useEffect(() => {
     if (view !== "cam") return;
 
@@ -193,18 +208,26 @@ export default function CheckInClient() {
       await new Promise<void>((r) => requestAnimationFrame(() => r()));
 
       try {
-        const { Html5Qrcode: H5 } = await import("html5-qrcode");
+        const { Html5Qrcode: H5, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
         if (cancelled) return;
 
-        scannerRef.current = new H5(READER_ID, { verbose: false });
+        scannerRef.current = new H5(READER_ID, {
+          verbose: false,
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        });
         const scanner = scannerRef.current;
 
         const scanConfig = {
-          fps: 10,
+          fps: 15,
           aspectRatio: 1.777777778,
+          videoConstraints: {
+            facingMode: "environment",
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
           qrbox: (vw: number, vh: number) => {
             const edge = Math.min(vw, vh);
-            const n = Math.max(140, Math.floor(edge * 0.72));
+            const n = Math.max(160, Math.floor(edge * 0.68));
             return { width: n, height: n };
           },
         };
@@ -279,16 +302,18 @@ export default function CheckInClient() {
       <div
         className={
           ok
-            ? `flex min-h-dvh flex-col items-center justify-center gap-6 bg-emerald-600 p-6 text-center text-white ${safeBottom}`
-            : `flex min-h-dvh flex-col items-center justify-center gap-6 bg-red-700 p-6 text-center text-white ${safeBottom}`
+            ? `flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-emerald-600 p-4 text-center text-white sm:gap-6 sm:p-6 ${safeBottom}`
+            : `flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-red-700 p-4 text-center text-white sm:gap-6 sm:p-6 ${safeBottom}`
         }
       >
-        <p className="text-3xl font-bold tracking-tight sm:text-4xl">
+        <p className="text-2xl font-bold tracking-tight sm:text-4xl">
           {ok ? "Entrada permitida" : result.titulo}
         </p>
         {ok ? (
           <>
-            <p className="text-5xl font-extrabold leading-tight sm:text-6xl">{result.nombre}</p>
+            <p className="max-w-[95vw] break-words text-3xl font-extrabold leading-tight sm:text-5xl md:text-6xl">
+              {result.nombre}
+            </p>
             <div className="mt-2 max-w-lg space-y-2 text-lg opacity-95">
               <p>
                 <span className="text-white/80">Email: </span>
@@ -332,7 +357,7 @@ export default function CheckInClient() {
         <button
           type="button"
           onClick={scanAgain}
-          className="mt-4 rounded-full bg-white/20 px-8 py-4 text-lg font-semibold text-white ring-2 ring-white/50 backdrop-blur hover:bg-white/30 active:scale-[0.98] motion-safe:transition"
+          className="touch-manipulation mt-2 min-h-[52px] w-full max-w-sm rounded-full bg-white/20 px-8 py-4 text-base font-semibold text-white ring-2 ring-white/50 backdrop-blur active:scale-[0.98] motion-safe:transition sm:text-lg"
         >
           Escanear otro
         </button>
@@ -342,25 +367,31 @@ export default function CheckInClient() {
 
   if (view === "cam") {
     return (
-      <div className={`flex min-h-dvh flex-col bg-black ${safeTop}`}>
-        <div className="z-20 flex shrink-0 items-center justify-between gap-2 px-3 pb-2 text-white">
-          <p className="text-sm font-medium opacity-90">Enfoca el QR del ticket</p>
+      <div className={`flex h-[100dvh] min-h-[100dvh] flex-col bg-black ${safeTop}`}>
+        <div className="z-20 flex shrink-0 items-center justify-between gap-2 px-3 pb-2 pt-1 text-white">
+          <p className="max-w-[70%] text-sm font-medium leading-snug opacity-90">
+            Enfoca el QR del ticket (cámara trasera)
+          </p>
           <button
             type="button"
             onClick={() => void closeCamera()}
-            className="rounded-lg bg-white/15 px-3 py-2 text-sm font-medium ring-1 ring-white/30"
+            className="touch-manipulation shrink-0 rounded-xl bg-white/15 px-4 py-3 text-sm font-semibold ring-1 ring-white/30 active:bg-white/25"
           >
             Cerrar
           </button>
         </div>
         <div className="relative min-h-0 flex-1">
           {camStarting && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black text-white">
-              Iniciando cámara…
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black text-white">
+              <span
+                className="size-10 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-400"
+                aria-hidden
+              />
+              <span className="text-sm">Iniciando cámara…</span>
             </div>
           )}
           {camError && (
-            <p className="absolute inset-x-0 top-20 z-10 px-4 text-center text-sm text-red-400">
+            <p className="absolute inset-x-0 top-16 z-10 px-4 text-center text-sm leading-snug text-red-400">
               {camError}
             </p>
           )}
@@ -375,22 +406,25 @@ export default function CheckInClient() {
 
   return (
     <div
-      className={`flex min-h-dvh flex-col items-center justify-center gap-8 bg-zinc-950 p-6 text-white ${safeBottom} ${safeTop}`}
+      className={`flex min-h-[100dvh] flex-col items-center justify-center gap-6 bg-zinc-950 px-4 py-8 text-white sm:gap-8 sm:p-6 ${safeBottom} ${safeTop}`}
     >
       <div className="max-w-md text-center">
-        <h1 className="text-3xl font-bold">Check-in del evento</h1>
-        <p className="mt-3 text-zinc-400">
-          Activa la cámara, escanea el QR del ticket y valida el acceso al instante.
+        <h1 className="text-2xl font-bold sm:text-3xl">Check-in del evento</h1>
+        <p className="mt-3 text-sm leading-relaxed text-zinc-400 sm:text-base">
+          Pulsa el botón, permite el acceso a la cámara y apunta al código QR del ticket.
         </p>
       </div>
       <button
         type="button"
         disabled={camStarting}
         onClick={openCamera}
-        className="rounded-full bg-emerald-600 px-12 py-5 text-xl font-bold text-white shadow-lg shadow-emerald-900/40 transition hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 motion-safe:transition"
+        className="touch-manipulation w-full max-w-sm rounded-2xl bg-emerald-600 px-8 py-5 text-lg font-bold text-white shadow-lg shadow-emerald-900/40 transition hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 sm:text-xl"
       >
         Activar cámara
       </button>
+      <p className="max-w-xs text-center text-xs text-zinc-600">
+        Usa HTTPS o localhost. En iPhone: Ajustes → Safari → Cámara (si no ves el vídeo).
+      </p>
     </div>
   );
 }

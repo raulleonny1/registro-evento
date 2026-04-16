@@ -26,36 +26,35 @@ export default function AdminPage() {
       <div className="min-h-dvh bg-gradient-to-br from-slate-950 via-zinc-950 to-rose-950/30 text-zinc-100">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,rgba(225,29,72,0.12),transparent)]" />
 
-        <main className="relative mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
-          <header className="mb-10 flex flex-col gap-6 border-b border-white/10 pb-8 sm:flex-row sm:items-end sm:justify-between">
-            <div>
+        <main className="relative mx-auto max-w-7xl px-3 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] sm:px-6 lg:px-8">
+          <header className="mb-8 flex flex-col gap-5 border-b border-white/10 pb-6 sm:mb-10 sm:pb-8 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-rose-400/90">
                 Panel
               </p>
-              <h1 className="mt-1 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
                 Gestión de registros
               </h1>
-              <p className="mt-2 max-w-xl text-sm text-zinc-400">
-                Aprueba, rechaza o elimina inscripciones. Los eliminados se quitan de Firestore y del
-                almacenamiento de comprobantes.
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-400">
+                Desliza en móvil o usa la vista en tarjetas. Para validar entradas usa Check-in QR.
               </p>
             </div>
-            <nav className="flex flex-wrap gap-3">
+            <nav className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible lg:max-w-none">
               <Link
                 href="/checkin"
-                className="rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+                className="snap-start shrink-0 touch-manipulation rounded-xl border border-emerald-500/40 bg-emerald-600/20 px-4 py-3 text-center text-sm font-semibold text-emerald-100 transition active:scale-[0.98] sm:py-2.5"
               >
                 Check-in QR
               </Link>
               <Link
                 href="/registro"
-                className="rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+                className="snap-start shrink-0 touch-manipulation rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-center text-sm font-medium text-zinc-200 transition hover:bg-white/10 sm:py-2.5"
               >
-                Formulario registro
+                Registro
               </Link>
               <Link
                 href="/"
-                className="rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-900/30 transition hover:from-rose-500 hover:to-rose-600"
+                className="snap-start shrink-0 touch-manipulation rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-rose-900/30 sm:py-2.5"
               >
                 Inicio
               </Link>

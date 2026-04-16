@@ -45,8 +45,8 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
 
   if (!ok) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-zinc-950 to-rose-950/30 px-4 py-12">
-        <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-zinc-900/80 p-8 shadow-2xl backdrop-blur-md">
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-zinc-950 to-rose-950/30 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-12">
+        <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-zinc-900/80 p-6 shadow-2xl backdrop-blur-md sm:p-8">
           <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-rose-400/90">
             Acceso restringido
           </p>
@@ -66,7 +66,7 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
                   setPin(e.target.value);
                   setError(false);
                 }}
-                className="mt-2 w-full rounded-xl border border-white/15 bg-black/30 px-4 py-3 text-center text-2xl tracking-[0.3em] text-white outline-none ring-rose-500/30 focus:border-rose-500/50 focus:ring-4"
+                className="mt-2 min-h-[52px] w-full touch-manipulation rounded-xl border border-white/15 bg-black/30 px-4 py-3 text-center text-2xl tracking-[0.3em] text-white outline-none ring-rose-500/30 focus:border-rose-500/50 focus:ring-4"
                 placeholder="••••"
                 aria-invalid={error}
                 autoFocus
@@ -79,7 +79,7 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
             )}
             <button
               type="submit"
-              className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 py-3.5 text-sm font-semibold text-white shadow-lg shadow-rose-900/30 transition hover:from-rose-500 hover:to-rose-600"
+              className="w-full touch-manipulation rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 py-4 text-sm font-semibold text-white shadow-lg shadow-rose-900/30 transition hover:from-rose-500 hover:to-rose-600 active:scale-[0.99] sm:py-3.5"
             >
               Entrar
             </button>

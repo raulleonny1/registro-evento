@@ -31,15 +31,16 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
-const inputClass =
-  "min-h-[48px] w-full rounded-xl border border-zinc-200 bg-white px-4 text-base text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 " +
+/* text-base (16px) evita zoom automático en focus en iOS Safari */
+const fieldClass =
+  "min-h-[52px] w-full touch-manipulation rounded-xl border border-zinc-200 bg-white px-4 py-3.5 text-base leading-normal text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 " +
   "focus:border-rose-400 focus:ring-4 focus:ring-rose-500/15 " +
   "dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 " +
   "dark:focus:border-rose-500 dark:focus:ring-rose-500/20";
 
-const selectClass = `${inputClass} cursor-pointer`;
+const selectClass = `${fieldClass} cursor-pointer`;
 
-const labelClass = "text-sm font-medium text-zinc-700 dark:text-zinc-300";
+const labelClass = "text-sm font-semibold text-zinc-800 dark:text-zinc-200";
 
 export function RegistroForm() {
   const router = useRouter();
@@ -91,7 +92,7 @@ export function RegistroForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <div className="space-y-2">
         <label htmlFor="reg-nombre" className={labelClass}>
           Nombre y apellidos
@@ -101,12 +102,13 @@ export function RegistroForm() {
           name="nombre"
           required
           autoComplete="name"
+          autoCapitalize="words"
           type="text"
           enterKeyHint="next"
           value={nombreApellidos}
           onChange={(e) => setNombreApellidos(e.target.value)}
           placeholder="Ej. María García López"
-          className={inputClass}
+          className={fieldClass}
         />
       </div>
       <div className="space-y-2">
@@ -118,13 +120,16 @@ export function RegistroForm() {
           name="email"
           required
           autoComplete="email"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           type="email"
           inputMode="email"
           enterKeyHint="next"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="tu@correo.com"
-          className={inputClass}
+          className={fieldClass}
         />
       </div>
       <div className="space-y-2">
@@ -142,7 +147,7 @@ export function RegistroForm() {
           value={whatsapp}
           onChange={(e) => setWhatsapp(e.target.value)}
           placeholder="Ej. +34 612 345 678"
-          className={inputClass}
+          className={fieldClass}
         />
       </div>
       <div className="space-y-2">
@@ -158,7 +163,7 @@ export function RegistroForm() {
           className={selectClass}
         >
           <option value="" disabled>
-            Selecciona tu parroquia
+            Pulsa para elegir tu parroquia
           </option>
           {zonas.map((zona) => (
             <optgroup key={zona} label={zona}>
@@ -174,13 +179,12 @@ export function RegistroForm() {
           ))}
         </select>
         <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-          Elige la comunidad o misión donde participas. Si no aparece, selecciona la más cercana y
-          coméntalo en el comprobante o con tu organizadora.
+          Si no aparece tu comunidad, elige la más cercana y coméntalo al subir el comprobante.
         </p>
       </div>
       {error && (
         <p
-          className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-snug text-red-900 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-100"
           role="alert"
         >
           {error}
@@ -189,7 +193,7 @@ export function RegistroForm() {
       <button
         type="submit"
         disabled={loading}
-        className="mt-1 flex min-h-[52px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-rose-700 to-rose-800 px-4 py-3.5 text-base font-semibold text-white shadow-lg shadow-rose-900/25 transition hover:from-rose-600 hover:to-rose-700 active:scale-[0.99] disabled:opacity-60 dark:from-rose-600 dark:to-rose-700 dark:hover:from-rose-500 dark:hover:to-rose-600 dark:shadow-black/30"
+        className="touch-manipulation mt-1 flex min-h-[56px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-rose-700 to-rose-800 px-4 py-4 text-base font-semibold text-white shadow-lg shadow-rose-900/25 transition active:scale-[0.99] disabled:opacity-60 dark:from-rose-600 dark:to-rose-700 dark:shadow-black/30"
       >
         {loading ? (
           <span className="flex items-center gap-2">
