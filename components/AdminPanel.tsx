@@ -5,6 +5,7 @@ import { getFirestoreLazy } from "@/lib/firestoreClient";
 import { formatFirebaseError } from "@/lib/firebaseError";
 import { deleteComprobanteFiles } from "@/lib/deleteRegistroAssets";
 import { labelParroquiaFirestore } from "@/lib/iereParroquias";
+import { formatEuros, pendienteEuros } from "@/lib/eventoPrecio";
 import { etiquetaEstado, normalizeEstado, REGISTRO_ESTADOS } from "@/lib/registroEstados";
 
 type Row = {
@@ -15,6 +16,7 @@ type Row = {
   parroquiaLabel: string;
   estado: string;
   comprobanteURL?: string;
+  montoDepositadoEuros: number;
 };
 
 function EstadoBadge({ estado }: { estado: string }) {
@@ -62,6 +64,7 @@ export default function AdminPanel() {
             : typeof x.telefono === "string"
               ? x.telefono
               : "";
+        const md = Number(x.montoDepositadoEuros ?? 0);
         return {
           id: d.id,
           nombre: String(x.nombre ?? ""),
@@ -70,6 +73,7 @@ export default function AdminPanel() {
           parroquiaLabel,
           estado: String(x.estado ?? ""),
           comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
+          montoDepositadoEuros: Number.isFinite(md) ? md : 0,
         };
       });
       list.sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -186,7 +190,7 @@ export default function AdminPanel() {
         {/* Vista escritorio: tabla */}
         <div className="hidden overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/40 backdrop-blur-sm md:block">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[920px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-white/10 bg-white/[0.04]">
                   <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
@@ -203,6 +207,12 @@ export default function AdminPanel() {
                   </th>
                   <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
                     Estado
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    Pagado
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    Pendiente
                   </th>
                   <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
                     Comprobante
@@ -228,6 +238,12 @@ export default function AdminPanel() {
                     </td>
                     <td className="px-4 py-3">
                       <EstadoBadge estado={r.estado} />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 tabular-nums text-zinc-200">
+                      {formatEuros(r.montoDepositadoEuros)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 tabular-nums text-amber-200/90">
+                      {formatEuros(pendienteEuros(r.montoDepositadoEuros))}
                     </td>
                     <td className="px-4 py-3">
                       {r.comprobanteURL ? (
@@ -301,6 +317,24 @@ export default function AdminPanel() {
                 <EstadoBadge estado={r.estado} />
               </div>
               <dl className="mt-3 space-y-2 text-sm">
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <div>
+                    <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                      Pagado
+                    </dt>
+                    <dd className="tabular-nums text-emerald-200/90">
+                      {formatEuros(r.montoDepositadoEuros)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                      Pendiente
+                    </dt>
+                    <dd className="tabular-nums text-amber-200/90">
+                      {formatEuros(pendienteEuros(r.montoDepositadoEuros))}
+                    </dd>
+                  </div>
+                </div>
                 <div>
                   <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
                     Email

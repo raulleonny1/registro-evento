@@ -1,9 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { doc, updateDoc } from "firebase/firestore";
+import { useEffect, useRef, useState } from "react";
+import { doc, getDoc, increment, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatFirebaseError } from "@/lib/firebaseError";
+import {
+  COSTO_EVENTO_EUR,
+  formatEuros,
+  parseMontoEuros,
+  pendienteEuros,
+} from "@/lib/eventoPrecio";
 import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
 
 const ACCEPT = "image/*,.pdf,application/pdf";
@@ -98,12 +104,31 @@ function uploadToCloudinary(
 
 export function SubirComprobante({ id, onUploaded }: Props) {
   const [file, setFile] = useState<File | null>(null);
+  const [montoStr, setMontoStr] = useState("");
+  const [depositadoActual, setDepositadoActual] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [progressPct, setProgressPct] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const snap = await getDoc(doc(db, "registros", id));
+        if (cancelled || !snap.exists()) return;
+        const n = Number(snap.data()?.montoDepositadoEuros ?? 0);
+        setDepositadoActual(Number.isFinite(n) ? n : 0);
+      } catch {
+        if (!cancelled) setDepositadoActual(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   async function subirArchivo(f: File) {
     setError(null);
@@ -122,6 +147,32 @@ export function SubirComprobante({ id, onUploaded }: Props) {
       return;
     }
 
+    const monto = parseMontoEuros(montoStr);
+    if (monto == null) {
+      setError("Indica cuánto has depositado en este comprobante (ej. 35 o 35,50).");
+      return;
+    }
+
+    let snapPre: Awaited<ReturnType<typeof getDoc>>;
+    try {
+      snapPre = await getDoc(doc(db, "registros", id));
+    } catch {
+      setError("No se pudo leer tu registro. Revisa la conexión.");
+      return;
+    }
+    const preData = snapPre.data() as { montoDepositadoEuros?: unknown } | undefined;
+    const prev = Number(preData?.montoDepositadoEuros ?? 0);
+    const prevOk = Number.isFinite(prev) ? prev : 0;
+    const pendiente = pendienteEuros(prevOk);
+    if (monto > pendiente + 0.001) {
+      setError(
+        pendiente < 0.01
+          ? "El importe ya está cubierto. Si es un error, contacta con organización."
+          : `Este comprobante no puede superar lo pendiente (${formatEuros(pendiente)}).`,
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       setProgressPct(0);
@@ -135,6 +186,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
         updateDoc(doc(db, "registros", id), {
           comprobanteURL,
           estado: REGISTRO_ESTADOS.revision,
+          montoDepositadoEuros: increment(monto),
         }),
         FIRESTORE_TIMEOUT_MS,
         "Guardar en la base de datos",
@@ -142,6 +194,9 @@ export function SubirComprobante({ id, onUploaded }: Props) {
 
       setSuccess(true);
       setFile(null);
+      setMontoStr("");
+      const nuevo = prevOk + monto;
+      setDepositadoActual(nuevo);
       setProgressPct(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (cameraInputRef.current) cameraInputRef.current.value = "";
@@ -169,6 +224,9 @@ export function SubirComprobante({ id, onUploaded }: Props) {
     setProgressPct(null);
   }
 
+  const pendiente =
+    depositadoActual != null ? pendienteEuros(depositadoActual) : null;
+
   if (success) {
     return (
       <div className="rounded-xl border border-emerald-500/40 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-100">
@@ -179,6 +237,42 @@ export function SubirComprobante({ id, onUploaded }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
+      {depositadoActual != null && pendiente != null && (
+        <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900/50 dark:text-zinc-200">
+          Total entrada: {formatEuros(COSTO_EVENTO_EUR)}. Llevas{" "}
+          <span className="font-semibold">{formatEuros(depositadoActual)}</span> registrados.
+          {pendiente > 0.01 ? (
+            <>
+              {" "}
+              Pendiente: <span className="font-semibold">{formatEuros(pendiente)}</span>.
+            </>
+          ) : (
+            <span className="font-medium text-emerald-700 dark:text-emerald-400">
+              {" "}
+              Importe completo.
+            </span>
+          )}
+        </p>
+      )}
+      <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+        Importe de este comprobante (€)
+        <input
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
+          placeholder="ej. 35 o 35,50"
+          value={montoStr}
+          disabled={loading}
+          onChange={(e) => {
+            setMontoStr(e.target.value);
+            setError(null);
+          }}
+          className="min-h-[44px] rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
+        />
+        <span className="text-xs font-normal text-zinc-500 dark:text-zinc-400">
+          Indica solo lo que corresponde a este justificante (puedes pagar el resto después).
+        </span>
+      </label>
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">
           Elegir archivo (imagen o PDF)
@@ -217,7 +311,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
       )}
       <button
         type="submit"
-        disabled={loading || !file}
+        disabled={loading || !file || !montoStr.trim()}
         className="touch-manipulation min-h-[48px] rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
       >
         {loading ? (

@@ -1,8 +1,13 @@
 "use client";
 
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, increment, updateDoc } from "firebase/firestore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { db } from "@/lib/firebase";
+import {
+  formatEuros,
+  parseMontoEuros,
+  pendienteEuros,
+} from "@/lib/eventoPrecio";
 import { labelParroquiaFirestore } from "@/lib/iereParroquias";
 import type { Html5Qrcode } from "html5-qrcode";
 
@@ -10,11 +15,14 @@ const READER_ID = "checkin-qr-reader";
 
 type ResultAllow = {
   kind: "allow";
+  registroId: string;
   nombre: string;
   email: string;
   whatsapp?: string;
   parroquiaLine?: string;
   estadoPago: string;
+  montoDepositadoEuros: number;
+  pendienteEuros: number;
 };
 
 type ResultDeny = {
@@ -77,6 +85,9 @@ type View = "welcome" | "cam" | "result";
 export default function CheckInClient() {
   const [view, setView] = useState<View>("welcome");
   const [result, setResult] = useState<CheckResult | null>(null);
+  const [puertaMonto, setPuertaMonto] = useState("");
+  const [puertaError, setPuertaError] = useState<string | null>(null);
+  const [puertaLoading, setPuertaLoading] = useState(false);
   const [camError, setCamError] = useState<string | null>(null);
   const [camStarting, setCamStarting] = useState(false);
 
@@ -115,6 +126,8 @@ export default function CheckInClient() {
       }
 
       try {
+        setPuertaMonto("");
+        setPuertaError(null);
         const snap = await getDoc(doc(db, "registros", id));
         if (!snap.exists()) {
           playFeedback(false);
@@ -141,13 +154,18 @@ export default function CheckInClient() {
 
         if (estado === "aprobado") {
           playFeedback(true);
+          const montoDep = Number(d.montoDepositadoEuros ?? 0);
+          const depOk = Number.isFinite(montoDep) ? montoDep : 0;
           setResult({
             kind: "allow",
+            registroId: id,
             nombre,
             email,
             whatsapp: whatsapp || undefined,
             parroquiaLine,
             estadoPago: estadoPagoLabel(estado),
+            montoDepositadoEuros: depOk,
+            pendienteEuros: pendienteEuros(depOk),
           });
         } else {
           playFeedback(false);
@@ -293,8 +311,53 @@ export default function CheckInClient() {
   const scanAgain = useCallback(() => {
     decodeLockRef.current = false;
     setResult(null);
+    setPuertaMonto("");
+    setPuertaError(null);
     setView("welcome");
   }, []);
+
+  async function registrarPagoEnPuerta() {
+    if (result?.kind !== "allow") return;
+    const monto = parseMontoEuros(puertaMonto);
+    if (monto == null) {
+      setPuertaError("Indica un importe válido (ej. 20 o 15,50).");
+      return;
+    }
+    setPuertaLoading(true);
+    setPuertaError(null);
+    try {
+      const snap = await getDoc(doc(db, "registros", result.registroId));
+      if (!snap.exists()) {
+        setPuertaError("Registro no encontrado.");
+        return;
+      }
+      const prev = Number(snap.data()?.montoDepositadoEuros ?? 0);
+      const prevOk = Number.isFinite(prev) ? prev : 0;
+      const pend = pendienteEuros(prevOk);
+      if (monto > pend + 0.001) {
+        setPuertaError(
+          pend < 0.01
+            ? "No hay pendiente según el registro."
+            : `Como máximo ${formatEuros(pend)} (lo pendiente).`,
+        );
+        return;
+      }
+      await updateDoc(doc(db, "registros", result.registroId), {
+        montoDepositadoEuros: increment(monto),
+      });
+      const nuevo = prevOk + monto;
+      setResult({
+        ...result,
+        montoDepositadoEuros: nuevo,
+        pendienteEuros: pendienteEuros(nuevo),
+      });
+      setPuertaMonto("");
+    } catch (e) {
+      setPuertaError(e instanceof Error ? e.message : "Error al guardar");
+    } finally {
+      setPuertaLoading(false);
+    }
+  }
 
   const safeBottom = "pb-[max(1.25rem,env(safe-area-inset-bottom))]";
   const safeTop = "pt-[max(0.75rem,env(safe-area-inset-top))]";
@@ -338,6 +401,50 @@ export default function CheckInClient() {
                 <span className="text-white/80">Estado de pago: </span>
                 {result.estadoPago}
               </p>
+              <div className="mt-4 rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-left shadow-inner">
+                <p className="text-base font-semibold">Pago entrada</p>
+                <p className="mt-1 text-base">
+                  <span className="text-white/80">Pagado: </span>
+                  {formatEuros(result.montoDepositadoEuros)}
+                </p>
+                <p className="text-base">
+                  <span className="text-white/80">Pendiente: </span>
+                  {formatEuros(result.pendienteEuros)}
+                </p>
+                {result.pendienteEuros > 0.01 ? (
+                  <div className="mt-3 flex flex-col gap-2">
+                    <label className="block text-sm text-white/90">
+                      Cobrar diferencia en puerta (€)
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        autoComplete="off"
+                        value={puertaMonto}
+                        disabled={puertaLoading}
+                        onChange={(e) => {
+                          setPuertaMonto(e.target.value);
+                          setPuertaError(null);
+                        }}
+                        placeholder="ej. 20"
+                        className="mt-1 w-full min-h-[44px] rounded-xl border border-white/30 bg-white/95 px-3 py-2 text-base text-zinc-900 placeholder:text-zinc-500"
+                      />
+                    </label>
+                    {puertaError && (
+                      <p className="text-sm font-medium text-amber-200">{puertaError}</p>
+                    )}
+                    <button
+                      type="button"
+                      disabled={puertaLoading || !puertaMonto.trim()}
+                      onClick={() => void registrarPagoEnPuerta()}
+                      className="touch-manipulation min-h-[48px] rounded-xl bg-white/25 px-4 py-3 text-sm font-semibold text-white ring-2 ring-white/40 hover:bg-white/35 disabled:opacity-50"
+                    >
+                      {puertaLoading ? "Guardando…" : "Registrar pago recibido"}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm font-medium text-emerald-100">Entrada pagada al completo.</p>
+                )}
+              </div>
             </div>
           </>
         ) : (
