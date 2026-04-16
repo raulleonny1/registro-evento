@@ -1,50 +1,183 @@
 export type IereParroquia = {
-  zona: string;
-  ciudad: string;
-  nombre: string;
+  area: string;
+  parroquia: string;
+  iglesia: string;
 };
 
-/** Parroquias IERE España para el selector de registro. */
+/** Parroquias IERE organizadas por ÁREA */
 export const iereParroquias: IereParroquia[] = [
-  { zona: "Centro", ciudad: "Madrid", nombre: "Catedral del Redentor" },
-  { zona: "Centro", ciudad: "Torrejón de Ardóz", nombre: "San Pablo" },
-  { zona: "Centro", ciudad: "Móstoles", nombre: "El Buen Pastor" },
-  { zona: "Centro", ciudad: "Alcorcón", nombre: "La Esperanza" },
-  { zona: "Centro", ciudad: "Fuenlabrada", nombre: "Belén" },
-  { zona: "Centro", ciudad: "Salamanca", nombre: "Salamanca" },
-  { zona: "Centro", ciudad: "Navalcarnero", nombre: "San Miguel Arcángel" },
-  { zona: "Norte", ciudad: "Valladolid", nombre: "Comunidad de Valladolid" },
-  { zona: "Norte", ciudad: "Oviedo", nombre: "Comunidad de Oviedo" },
-  { zona: "Norte", ciudad: "Bilbao", nombre: "Comunidad de Bilbao" },
-  { zona: "Norte", ciudad: "Vitoria", nombre: "Misión de Vitoria" },
-  { zona: "Cataluña", ciudad: "Barcelona", nombre: "Comunidad de Barcelona" },
-  { zona: "Cataluña", ciudad: "Tarragona", nombre: "Comunidad de Tarragona" },
-  { zona: "Levante", ciudad: "Valencia", nombre: "Comunidad de Valencia" },
-  { zona: "Levante", ciudad: "Alicante", nombre: "Comunidad de Alicante" },
-  { zona: "Levante", ciudad: "Castellón", nombre: "Comunidad de Castellón" },
-  { zona: "Andalucía", ciudad: "Sevilla", nombre: "Comunidad de Sevilla" },
-  { zona: "Andalucía", ciudad: "Málaga", nombre: "Comunidad de Málaga" },
-  { zona: "Andalucía", ciudad: "Granada", nombre: "Comunidad de Granada" },
-  { zona: "Murcia", ciudad: "Murcia", nombre: "Comunidad de Murcia" },
-  { zona: "Murcia", ciudad: "Cartagena", nombre: "Comunidad de Cartagena" },
-  { zona: "Canarias", ciudad: "Las Palmas", nombre: "Comunidad de Las Palmas" },
-  { zona: "Canarias", ciudad: "Tenerife", nombre: "Comunidad de Tenerife" },
+  // 🔵 ÁREA I
+  {
+    area: "Área I",
+    parroquia: "Alicante",
+    iglesia: "Iglesia de San Pablo",
+  },
+  {
+    area: "Área I",
+    parroquia: "Barcelona",
+    iglesia: "Iglesia del Buen Pastor",
+  },
+  {
+    area: "Área I",
+    parroquia: "Reus",
+    iglesia: "Iglesia de la Natividad",
+  },
+  {
+    area: "Área I",
+    parroquia: "Sabadell",
+    iglesia: "Iglesia de Cristo",
+  },
+  {
+    area: "Área I",
+    parroquia: "Valencia",
+    iglesia: "Iglesia de Jesucristo",
+  },
+  {
+    area: "Área I",
+    parroquia: "Zaragoza",
+    iglesia: "Iglesia de San Andrés",
+  },
+
+  // 🟡 ÁREA II
+  {
+    area: "Área II",
+    parroquia: "Sevilla",
+    iglesia: "Iglesia de la Ascensión",
+  },
+  {
+    area: "Área II",
+    parroquia: "Sevilla",
+    iglesia: "Iglesia de San Basilio",
+  },
+  {
+    area: "Área II",
+    parroquia: "Torre del Mar (Málaga)",
+    iglesia: "Iglesia de San Bernabé",
+  },
+  {
+    area: "Área II",
+    parroquia: "Calasparra (Murcia)",
+    iglesia: "Iglesia Anglicana de Calasparra",
+  },
+  {
+    area: "Área II",
+    parroquia: "Las Palmas de Gran Canaria",
+    iglesia: "Iglesia de la Trinidad",
+  },
+  {
+    area: "Área II",
+    parroquia: "Cómpeta (Málaga)",
+    iglesia: "Misión en Cómpeta",
+  },
+  {
+    area: "Área II",
+    parroquia: "Almería",
+    iglesia: "Iglesia de San Rafael",
+  },
+
+  // 🔴 ÁREA III
+  {
+    area: "Área III",
+    parroquia: "Madrid",
+    iglesia: "Catedral del Redentor",
+  },
+  {
+    area: "Área III",
+    parroquia: "Móstoles (Madrid)",
+    iglesia: "Iglesia del Buen Pastor",
+  },
+  {
+    area: "Área III",
+    parroquia: "Salamanca",
+    iglesia: "Iglesia del Redentor",
+  },
+  {
+    area: "Área III",
+    parroquia: "Valladolid",
+    iglesia: "Iglesia Antigua de los Mártires",
+  },
+  {
+    area: "Área III",
+    parroquia: "Alcorcón (Madrid)",
+    iglesia: "Iglesia de la Esperanza",
+  },
+  {
+    area: "Área III",
+    parroquia: "Oviedo",
+    iglesia: "Iglesia de San Juan",
+  },
+  {
+    area: "Área III",
+    parroquia: "Navalcarnero (Madrid)",
+    iglesia: "Iglesia de San Miguel",
+  },
+  {
+    area: "Área III",
+    parroquia: "La Coruña",
+    iglesia: "Iglesia de Santa Cruz",
+  },
+  {
+    area: "Área III",
+    parroquia: "Pontevedra",
+    iglesia: "Iglesia Episcopal de Cristo",
+  },
+  {
+    area: "Área III",
+    parroquia: "Pamplona",
+    iglesia: "Iglesia de San Mateo",
+  },
+  {
+    area: "Área III",
+    parroquia: "Torrejón de Ardoz (Madrid)",
+    iglesia: "Iglesia de San Pablo",
+  },
 ];
 
-/** Etiqueta corta para selects y listados. */
+/** Etiqueta corta para selects y listados: parroquia — iglesia */
 export function labelParroquia(p: IereParroquia): string {
-  return `${p.ciudad} — ${p.nombre}`;
+  return `${p.parroquia} — ${p.iglesia}`;
 }
 
-/** Zonas en el orden en que aparecen en el listado. */
-export function zonasIereEnOrden(): string[] {
+/** Áreas en el orden en que aparecen en el listado. */
+export function areasIereEnOrden(): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const p of iereParroquias) {
-    if (!seen.has(p.zona)) {
-      seen.add(p.zona);
-      out.push(p.zona);
+    if (!seen.has(p.area)) {
+      seen.add(p.area);
+      out.push(p.area);
     }
   }
   return out;
+}
+
+/** Etiqueta para documentos en Firestore (nuevo modelo o legacy `ciudad`/`nombre`). */
+export function labelParroquiaFirestore(
+  par:
+    | {
+        area?: string;
+        parroquia?: string;
+        iglesia?: string;
+        ciudad?: string;
+        nombre?: string;
+        manual?: boolean;
+      }
+    | undefined,
+): string {
+  if (!par) return "—";
+  const ig = par.iglesia != null ? String(par.iglesia).trim() : "";
+  const pr = par.parroquia != null ? String(par.parroquia).trim() : "";
+  if (pr && ig) {
+    let line = `${pr} — ${ig}`;
+    if (par.manual === true) {
+      const ar = par.area != null ? String(par.area).trim() : "";
+      line = ar ? `${ar} · ${line}` : line;
+      line += " (manual)";
+    }
+    return line;
+  }
+  const ciudad = par.ciudad != null ? String(par.ciudad).trim() : "";
+  const nombre = par.nombre != null ? String(par.nombre).trim() : "";
+  if (ciudad && nombre) return `${ciudad} — ${nombre}`;
+  return "—";
 }

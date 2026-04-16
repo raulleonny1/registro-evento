@@ -3,6 +3,7 @@
 import { doc, getDoc } from "firebase/firestore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { db } from "@/lib/firebase";
+import { labelParroquiaFirestore } from "@/lib/iereParroquias";
 import type { Html5Qrcode } from "html5-qrcode";
 
 const READER_ID = "checkin-qr-reader";
@@ -132,11 +133,11 @@ export default function CheckInClient() {
         const estado = String(d.estado ?? "");
         const whatsappRaw = d.whatsapp ?? d.telefono;
         const whatsapp = typeof whatsappRaw === "string" ? whatsappRaw : "";
-        const par = d.parroquia as { ciudad?: string; nombre?: string } | undefined;
-        const parroquiaLine =
-          par && (par.ciudad || par.nombre)
-            ? `${String(par.ciudad ?? "")} — ${String(par.nombre ?? "")}`
-            : undefined;
+        const par = d.parroquia as
+          | { area?: string; parroquia?: string; iglesia?: string; ciudad?: string; nombre?: string }
+          | undefined;
+        const pl = labelParroquiaFirestore(par);
+        const parroquiaLine = pl !== "—" ? pl : undefined;
 
         if (estado === "aprobado") {
           playFeedback(true);

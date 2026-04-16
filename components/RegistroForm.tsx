@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatFirebaseError } from "@/lib/firebaseError";
-import { iereParroquias, labelParroquia, zonasIereEnOrden } from "@/lib/iereParroquias";
+import { areasIereEnOrden, iereParroquias, labelParroquia } from "@/lib/iereParroquias";
 import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
 import { soloDigitos, ultimosDigitos } from "@/lib/phoneDigits";
 
@@ -44,28 +44,58 @@ const selectClass = `${fieldClass} cursor-pointer`;
 
 const labelClass = "text-sm font-semibold text-zinc-800 dark:text-zinc-200";
 
+/** Valor del &lt;select&gt; cuando el usuario indica datos a mano. */
+const OTRA_PARROQUIA = "__otra__";
+
 export function RegistroForm() {
   const router = useRouter();
   const [nombreApellidos, setNombreApellidos] = useState("");
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [parroquiaIdx, setParroquiaIdx] = useState("");
+  const [areaManual, setAreaManual] = useState("");
+  const [parroquiaManual, setParroquiaManual] = useState("");
+  const [iglesiaManual, setIglesiaManual] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const zonas = useMemo(() => zonasIereEnOrden(), []);
+  const areas = useMemo(() => areasIereEnOrden(), []);
+
+  const esOtra = parroquiaIdx === OTRA_PARROQUIA;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    const idx = parseInt(parroquiaIdx, 10);
-    if (Number.isNaN(idx) || idx < 0 || idx >= iereParroquias.length) {
-      setError("Selecciona una parroquia válida.");
-      return;
-    }
+    let parroquiaPayload: {
+      area: string;
+      parroquia: string;
+      iglesia: string;
+      manual?: boolean;
+    };
 
-    const parroquia = iereParroquias[idx];
+    if (parroquiaIdx === OTRA_PARROQUIA) {
+      const area = areaManual.trim();
+      const parr = parroquiaManual.trim();
+      const igl = iglesiaManual.trim();
+      if (!area || !parr || !igl) {
+        setError("Completa área, parroquia/localidad e iglesia, o elige una opción de la lista.");
+        return;
+      }
+      parroquiaPayload = { area, parroquia: parr, iglesia: igl, manual: true };
+    } else {
+      const idx = parseInt(parroquiaIdx, 10);
+      if (Number.isNaN(idx) || idx < 0 || idx >= iereParroquias.length) {
+        setError("Selecciona una parroquia válida.");
+        return;
+      }
+      const parroquia = iereParroquias[idx];
+      parroquiaPayload = {
+        area: parroquia.area,
+        parroquia: parroquia.parroquia,
+        iglesia: parroquia.iglesia,
+      };
+    }
 
     const wa = whatsapp.trim();
     const whatsappDigitos = soloDigitos(wa);
@@ -85,11 +115,7 @@ export function RegistroForm() {
           whatsapp: wa,
           whatsappDigitos,
           whatsappUltimos4,
-          parroquia: {
-            zona: parroquia.zona,
-            ciudad: parroquia.ciudad,
-            nombre: parroquia.nombre,
-          },
+          parroquia: parroquiaPayload,
           estado: REGISTRO_ESTADOS.pendiente_pago,
           fecha: serverTimestamp(),
         }),
@@ -165,7 +191,7 @@ export function RegistroForm() {
       </div>
       <div className="space-y-2">
         <label htmlFor="reg-parroquia" className={labelClass}>
-          Parroquia IERE (España)
+          Iglesia IERE (área, ciudad, iglesia)
         </label>
         <select
           id="reg-parroquia"
@@ -178,21 +204,78 @@ export function RegistroForm() {
           <option value="" disabled>
             Pulsa para elegir tu parroquia
           </option>
-          {zonas.map((zona) => (
-            <optgroup key={zona} label={zona}>
+          {areas.map((area) => (
+            <optgroup key={area} label={area}>
               {iereParroquias
                 .map((p, globalIdx) => ({ p, globalIdx }))
-                .filter(({ p }) => p.zona === zona)
+                .filter(({ p }) => p.area === area)
                 .map(({ p, globalIdx }) => (
-                  <option key={`${p.ciudad}-${p.nombre}-${globalIdx}`} value={String(globalIdx)}>
+                  <option key={`${p.parroquia}-${p.iglesia}-${globalIdx}`} value={String(globalIdx)}>
                     {labelParroquia(p)}
                   </option>
                 ))}
             </optgroup>
           ))}
+          <option value={OTRA_PARROQUIA}>
+            Otra — mi área, parroquia o iglesia no aparecen en la lista
+          </option>
         </select>
+        {esOtra && (
+          <div className="mt-4 space-y-4 rounded-xl border border-rose-200/80 bg-rose-50/50 p-4 dark:border-rose-500/25 dark:bg-rose-950/20">
+            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+              Indica tus datos (el organizador podrá contrastarlos)
+            </p>
+            <div className="space-y-2">
+              <label htmlFor="reg-area-manual" className={labelClass}>
+                Área
+              </label>
+              <input
+                id="reg-area-manual"
+                name="areaManual"
+                type="text"
+                autoComplete="off"
+                value={areaManual}
+                onChange={(e) => setAreaManual(e.target.value)}
+                placeholder="Ej. Área I, o el nombre que corresponda"
+                className={fieldClass}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="reg-parroquia-manual" className={labelClass}>
+                Parroquia / localidad
+              </label>
+              <input
+                id="reg-parroquia-manual"
+                name="parroquiaManual"
+                type="text"
+                autoComplete="off"
+                value={parroquiaManual}
+                onChange={(e) => setParroquiaManual(e.target.value)}
+                placeholder="Ej. Ciudad o comunidad"
+                className={fieldClass}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="reg-iglesia-manual" className={labelClass}>
+                Iglesia
+              </label>
+              <input
+                id="reg-iglesia-manual"
+                name="iglesiaManual"
+                type="text"
+                autoComplete="off"
+                value={iglesiaManual}
+                onChange={(e) => setIglesiaManual(e.target.value)}
+                placeholder="Nombre de la iglesia"
+                className={fieldClass}
+              />
+            </div>
+          </div>
+        )}
         <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-          Si no aparece tu comunidad, elige la más cercana y coméntalo al subir el comprobante.
+          {esOtra
+            ? "Los datos manuales se revisan con el equipo IERE."
+            : "Si no ves tu comunidad, elige «Otra» al final del listado y escribe área, parroquia e iglesia."}
         </p>
       </div>
       {error && (

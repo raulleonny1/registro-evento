@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getFirestoreLazy } from "@/lib/firestoreClient";
 import { formatFirebaseError } from "@/lib/firebaseError";
 import { deleteComprobanteFiles } from "@/lib/deleteRegistroAssets";
+import { labelParroquiaFirestore } from "@/lib/iereParroquias";
 import { etiquetaEstado, normalizeEstado, REGISTRO_ESTADOS } from "@/lib/registroEstados";
 
 type Row = {
@@ -51,10 +52,10 @@ export default function AdminPanel() {
       const snap = await getDocs(collection(db, "registros"));
       const list: Row[] = snap.docs.map((d) => {
         const x = d.data();
-        const par = x.parroquia as { ciudad?: string; nombre?: string } | undefined;
-        const parroquiaLabel = par
-          ? `${String(par.ciudad ?? "")} — ${String(par.nombre ?? "")}`
-          : "—";
+        const par = x.parroquia as
+          | { area?: string; parroquia?: string; iglesia?: string; ciudad?: string; nombre?: string }
+          | undefined;
+        const parroquiaLabel = labelParroquiaFirestore(par);
         const wa =
           typeof x.whatsapp === "string"
             ? x.whatsapp

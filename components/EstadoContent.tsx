@@ -8,9 +8,14 @@ import { SubirComprobante } from "@/components/SubirComprobante";
 import { REGISTRO_ESTADOS, esPendientePago, normalizeEstado } from "@/lib/registroEstados";
 
 export type ParroquiaDoc = {
-  zona: string;
-  ciudad: string;
-  nombre: string;
+  area?: string;
+  parroquia?: string;
+  iglesia?: string;
+  manual?: boolean;
+  /** Legacy */
+  zona?: string;
+  ciudad?: string;
+  nombre?: string;
 };
 
 export type RegistroDoc = {
