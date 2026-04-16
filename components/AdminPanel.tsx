@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getFirestoreLazy } from "@/lib/firestoreClient";
 import { formatFirebaseError } from "@/lib/firebaseError";
 import { deleteComprobanteFiles } from "@/lib/deleteRegistroAssets";
+import { etiquetaEstado, normalizeEstado, REGISTRO_ESTADOS } from "@/lib/registroEstados";
 
 type Row = {
   id: string;
@@ -17,17 +18,19 @@ type Row = {
 
 function EstadoBadge({ estado }: { estado: string }) {
   const styles: Record<string, string> = {
+    pendiente_pago: "border-amber-400/40 bg-amber-500/15 text-amber-200",
     pendiente: "border-amber-400/40 bg-amber-500/15 text-amber-200",
     revision: "border-sky-400/40 bg-sky-500/15 text-sky-200",
     aprobado: "border-emerald-400/40 bg-emerald-500/15 text-emerald-200",
     rechazado: "border-rose-400/40 bg-rose-500/15 text-rose-200",
   };
-  const cls = styles[estado] ?? "border-white/15 bg-white/10 text-zinc-300";
+  const key = normalizeEstado(estado);
+  const cls = styles[key] ?? styles[estado] ?? "border-white/15 bg-white/10 text-zinc-300";
   return (
     <span
-      className={`inline-flex shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize tracking-wide ${cls}`}
+      className={`inline-flex shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold tracking-wide ${cls}`}
     >
-      {estado}
+      {etiquetaEstado(estado)}
     </span>
   );
 }
@@ -117,15 +120,16 @@ export default function AdminPanel() {
   async function confirmarEliminar() {
     if (!deleteTarget) return;
     const id = deleteTarget.id;
+    const comprobanteURL = deleteTarget.comprobanteURL;
     setBusyId(id);
     setError(null);
     try {
-      await deleteComprobanteFiles(id);
       const { fs, db } = await getFirestoreLazy();
       const { doc, deleteDoc } = fs;
       await deleteDoc(doc(db, "registros", id));
       setDeleteTarget(null);
       await load();
+      await deleteComprobanteFiles(id, comprobanteURL);
     } catch (e) {
       setError(formatFirebaseError(e));
     } finally {
@@ -208,7 +212,10 @@ export default function AdminPanel() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {rows.map((r) => (
+                {rows.map((r) => {
+                  const est = normalizeEstado(r.estado);
+                  const aprobarBloqueado = est === REGISTRO_ESTADOS.pendiente_pago;
+                  return (
                   <tr key={r.id} className="transition hover:bg-white/[0.04]">
                     <td className="max-w-[160px] px-4 py-3 font-medium text-zinc-100">{r.nombre}</td>
                     <td className="max-w-[200px] truncate px-4 py-3 text-zinc-300" title={r.email}>
@@ -239,7 +246,12 @@ export default function AdminPanel() {
                       <div className="flex flex-wrap gap-1.5">
                         <button
                           type="button"
-                          disabled={busyId === r.id}
+                          disabled={busyId === r.id || aprobarBloqueado}
+                          title={
+                            aprobarBloqueado
+                              ? "Primero debe subirse un comprobante (estado pendiente de pago)"
+                              : undefined
+                          }
                           onClick={() => aprobar(r.id)}
                           className={`${btnBase} bg-emerald-600/90 text-white shadow-lg shadow-emerald-900/20 hover:bg-emerald-500`}
                         >
@@ -264,7 +276,8 @@ export default function AdminPanel() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                );
+                })}
               </tbody>
             </table>
           </div>
@@ -272,7 +285,10 @@ export default function AdminPanel() {
 
         {/* Vista móvil: tarjetas */}
         <div className="flex flex-col gap-3 md:hidden">
-          {rows.map((r) => (
+          {rows.map((r) => {
+            const est = normalizeEstado(r.estado);
+            const aprobarBloqueado = est === REGISTRO_ESTADOS.pendiente_pago;
+            return (
             <article
               key={r.id}
               className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-lg shadow-black/20"
@@ -316,7 +332,12 @@ export default function AdminPanel() {
               <div className="mt-4 grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  disabled={busyId === r.id}
+                  disabled={busyId === r.id || aprobarBloqueado}
+                  title={
+                    aprobarBloqueado
+                      ? "Primero debe subirse un comprobante (estado pendiente de pago)"
+                      : undefined
+                  }
                   onClick={() => aprobar(r.id)}
                   className={`${btnBase} min-h-[48px] bg-emerald-600 text-white shadow-md hover:bg-emerald-500`}
                 >
@@ -340,7 +361,8 @@ export default function AdminPanel() {
                 </button>
               </div>
             </article>
-          ))}
+          );
+          })}
         </div>
 
         {rows.length === 0 && (

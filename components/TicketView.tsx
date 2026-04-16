@@ -20,9 +20,11 @@ export function TicketView({ id }: { id: string }) {
           setNombre(null);
           return;
         }
-        const n = (snap.data().nombre as string) ?? "";
+        const d = snap.data();
+        const n = (d.nombre as string) ?? "";
         setNombre(n);
-        const url = await generateQrDataUrl(id, 400);
+        const guardado = typeof d.qr === "string" && d.qr.length > 0 ? d.qr : null;
+        const url = guardado ?? (await generateQrDataUrl(id, 400));
         if (!cancelled) setQrUrl(url);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Error");

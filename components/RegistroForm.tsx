@@ -6,6 +6,8 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatFirebaseError } from "@/lib/firebaseError";
 import { iereParroquias, labelParroquia, zonasIereEnOrden } from "@/lib/iereParroquias";
+import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
+import { soloDigitos, ultimosDigitos } from "@/lib/phoneDigits";
 
 const SUBMIT_TIMEOUT_MS = 35_000;
 
@@ -65,19 +67,30 @@ export function RegistroForm() {
 
     const parroquia = iereParroquias[idx];
 
+    const wa = whatsapp.trim();
+    const whatsappDigitos = soloDigitos(wa);
+    if (whatsappDigitos.length < 4) {
+      setError("El teléfono debe tener al menos 4 dígitos para poder localizar tu registro después.");
+      return;
+    }
+
     setLoading(true);
     try {
+      const whatsappUltimos4 = ultimosDigitos(wa, 4);
+
       const ref = await withTimeout(
         addDoc(collection(db, "registros"), {
           nombre: nombreApellidos.trim(),
           email: email.trim().toLowerCase(),
-          whatsapp: whatsapp.trim(),
+          whatsapp: wa,
+          whatsappDigitos,
+          whatsappUltimos4,
           parroquia: {
             zona: parroquia.zona,
             ciudad: parroquia.ciudad,
             nombre: parroquia.nombre,
           },
-          estado: "pendiente",
+          estado: REGISTRO_ESTADOS.pendiente_pago,
           fecha: serverTimestamp(),
         }),
         SUBMIT_TIMEOUT_MS,

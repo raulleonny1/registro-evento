@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { RegistroOpciones } from "@/components/RegistroOpciones";
 import { Inter, Playfair_Display } from "next/font/google";
 
 const inter = Inter({
@@ -14,26 +15,6 @@ const playfair = Playfair_Display({
   style: ["normal", "italic"],
   display: "swap",
 });
-
-function ArrowIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-6 w-6"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      aria-hidden
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M14 5l7 7m0 0l-7 7m7-7H3"
-      />
-    </svg>
-  );
-}
 
 function LockIcon() {
   return (
@@ -105,16 +86,14 @@ export function HomeHub() {
         </div>
 
         <p className="mb-10 max-w-sm px-2 text-center text-sm leading-relaxed text-slate-500">
-          Elige si deseas inscribirte al evento o acceder al panel de administración.
+          Desde Registro puedes inscribirte, continuar un trámite o ver tu código; la administración
+          es solo para el equipo del evento.
         </p>
 
         {/* Tarjetas */}
         <div className="w-full space-y-4">
-          <Link
-            href="/registro"
-            className={`${glassRegistro} group flex w-full touch-manipulation items-center justify-between rounded-3xl p-6 text-left`}
-          >
-            <div className="min-w-0 flex-1">
+          <div className={`${glassRegistro} group flex w-full flex-col rounded-3xl p-6 text-left`}>
+            <div className="mb-4 min-w-0">
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-red-600">
                 Participantes
               </span>
@@ -123,10 +102,8 @@ export function HomeHub() {
                 Inscripción, comprobante y seguimiento de tu solicitud.
               </p>
             </div>
-            <div className="ml-4 shrink-0 rounded-2xl bg-red-600 p-3 text-white transition-colors group-hover:bg-red-700">
-              <ArrowIcon />
-            </div>
-          </Link>
+            <RegistroOpciones />
+          </div>
 
           <Link
             href="/admin"

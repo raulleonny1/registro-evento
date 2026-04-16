@@ -32,6 +32,7 @@ function estadoPagoLabel(estado: string): string {
   switch (estado) {
     case "aprobado":
       return "Aprobado";
+    case "pendiente_pago":
     case "pendiente":
       return "Pago pendiente";
     case "revision":
@@ -150,7 +151,8 @@ export default function CheckInClient() {
         } else {
           playFeedback(false);
           let motivo = estadoPagoLabel(estado);
-          if (estado === "pendiente") motivo = "Pago pendiente — sin comprobar";
+          if (estado === "pendiente_pago" || estado === "pendiente")
+            motivo = "Pago pendiente — sin comprobar";
           else if (estado === "revision") motivo = "Comprobante en revisión — espere aprobación";
           else if (estado === "rechazado") motivo = "Registro rechazado — no tiene acceso";
           setResult({
