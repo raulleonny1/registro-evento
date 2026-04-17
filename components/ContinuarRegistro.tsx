@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   collection,
   doc,
@@ -51,6 +51,19 @@ export function ContinuarRegistro() {
   const [selected, setSelected] = useState<Found | null>(null);
   const [guardandoModalidad, setGuardandoModalidad] = useState(false);
   const [modalidadMsg, setModalidadMsg] = useState<string | null>(null);
+  const resultadoRegistroRef = useRef<HTMLDivElement>(null);
+
+  /** Scroll al bloque del registro cuando aparece o cambia de persona — no al refrescar solo datos (mismo `id`). */
+  useEffect(() => {
+    if (!selected) return;
+    const t = window.requestAnimationFrame(() => {
+      resultadoRegistroRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+    return () => window.cancelAnimationFrame(t);
+  }, [selected?.id]);
 
   async function buscarPorUltimos4() {
     const last4 = soloDigitos(digitos).slice(-4);
@@ -195,7 +208,9 @@ export function ContinuarRegistro() {
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
           Escribe los <strong>últimos 4 dígitos</strong> del número que indicaste al inscribirte
-          (sin prefijo internacional, solo números).
+          (sin prefijo internacional, solo números). Si te encontramos, la página{" "}
+          <strong className="font-semibold text-zinc-700 dark:text-zinc-300">bajará sola</strong> a tu
+          ficha para subir el comprobante.
         </p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">
@@ -227,7 +242,9 @@ export function ContinuarRegistro() {
           Buscar por ID de registro
         </h2>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          Si te llegó un enlace o correo con un identificador largo, pégalo aquí.
+          Si te llegó un enlace o correo con un identificador largo, pégalo aquí. Al encontrar el
+          registro, la página <strong className="font-semibold text-zinc-700 dark:text-zinc-300">bajará</strong>{" "}
+          a tu ficha.
         </p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">
@@ -288,7 +305,11 @@ export function ContinuarRegistro() {
       )}
 
       {selected && (
-        <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-5 dark:border-emerald-500/20 dark:bg-emerald-950/20">
+        <div
+          ref={resultadoRegistroRef}
+          tabIndex={-1}
+          className="scroll-mt-6 rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-5 outline-none ring-offset-2 ring-offset-white focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:border-emerald-500/20 dark:bg-emerald-950/20 dark:ring-offset-zinc-950"
+        >
           <p className="text-sm font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">
             Registro encontrado
           </p>
@@ -360,8 +381,10 @@ export function ContinuarRegistro() {
               <p className="mb-4 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
                 Archivo o foto. Si la subida tarda mucho, comprueba la conexión o prueba un PDF.
               </p>
+              {/* key estable: si incluimos estado, al pasar a "revision" tras subir el comprobante React
+                  remontaba el hijo y se perdía el mensaje de éxito. */}
               <SubirComprobante
-                key={`${selected.id}-${selected.estado}`}
+                key={selected.id}
                 id={selected.id}
                 onUploaded={() => void refrescarSeleccionado()}
               />
