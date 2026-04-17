@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { doc, getDoc, increment, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -242,8 +243,23 @@ export function SubirComprobante({ id, onUploaded }: Props) {
 
   if (success) {
     return (
-      <div className="rounded-xl border border-emerald-500/40 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-100">
-        Comprobante enviado correctamente. Tu pago pasará a revisión.
+      <div className="flex max-w-md flex-col gap-3 rounded-xl border border-emerald-500/40 bg-emerald-50/90 px-4 py-4 text-sm text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-100">
+        <p className="text-base font-semibold">Comprobante enviado correctamente</p>
+        <p className="leading-relaxed">
+          Tu pago ha pasado a revisión. <strong className="font-semibold">Espera a que el equipo lo apruebe</strong>{" "}
+          para poder obtener el <strong className="font-semibold">código QR y el acceso al evento</strong>: hasta
+          entonces no estarán disponibles.
+        </p>
+        <p className="leading-relaxed text-emerald-900 dark:text-emerald-200/95">
+          Puedes seguir el estado en{" "}
+          <Link
+            href={`/estado/${id}`}
+            className="font-semibold text-emerald-800 underline underline-offset-2 dark:text-emerald-300"
+          >
+            tu registro
+          </Link>
+          . Cuando figure como aprobado, ahí tendrás el enlace al ticket y al código.
+        </p>
       </div>
     );
   }

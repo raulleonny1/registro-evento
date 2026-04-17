@@ -96,8 +96,16 @@ export function EstadoContent({ id }: { id: string }) {
   if (estado === REGISTRO_ESTADOS.revision) {
     return (
       <div className="flex max-w-lg flex-col gap-4">
+        <div className="rounded-xl border border-sky-200/90 bg-sky-50/95 px-4 py-3 text-sm leading-relaxed text-sky-950 dark:border-sky-500/35 dark:bg-sky-950/35 dark:text-sky-100">
+          <p className="font-semibold">En revisión</p>
+          <p className="mt-2">
+            El equipo está revisando tu comprobante. <strong className="font-semibold">Hasta que no aprueben el pago</strong>, no
+            podrás ver el <strong className="font-semibold">código QR ni el acceso al evento</strong>. Te avisaremos cuando quede
+            confirmado.
+          </p>
+        </div>
         <p className="font-medium text-zinc-900 dark:text-zinc-100">
-          Tu comprobante está en revisión. Te avisaremos cuando el pago quede confirmado.
+          Vuelve a esta página más tarde o entra desde &ldquo;Continuar registro&rdquo; para comprobar si ya está aprobado.
         </p>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Para enviar otro archivo, usa{" "}
