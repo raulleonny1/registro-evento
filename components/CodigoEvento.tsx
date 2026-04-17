@@ -165,6 +165,7 @@ export function CodigoEvento() {
             Teléfono (4 dígitos) o ID
             <input
               type="text"
+              inputMode="text"
               autoComplete="off"
               spellCheck={false}
               value={busqueda}

@@ -218,6 +218,7 @@ export function ContinuarRegistro() {
             <input
               type="text"
               inputMode="numeric"
+              pattern="[0-9]*"
               autoComplete="off"
               maxLength={8}
               value={digitos}
@@ -251,6 +252,7 @@ export function ContinuarRegistro() {
             ID
             <input
               type="text"
+              inputMode="text"
               autoComplete="off"
               spellCheck={false}
               value={idDirecto}

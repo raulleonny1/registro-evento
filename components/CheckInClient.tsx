@@ -444,6 +444,7 @@ export default function CheckInClient() {
                         type="text"
                         inputMode="decimal"
                         autoComplete="off"
+                        enterKeyHint="done"
                         value={puertaMonto}
                         disabled={puertaLoading}
                         onChange={(e) => {

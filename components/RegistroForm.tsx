@@ -288,6 +288,7 @@ export function RegistroForm() {
           autoComplete="name"
           autoCapitalize="words"
           type="text"
+          inputMode="text"
           enterKeyHint="next"
           value={nombreApellidos}
           onChange={(e) => setNombreApellidos(e.target.value)}
@@ -395,6 +396,8 @@ export function RegistroForm() {
                 id="reg-area-manual"
                 name="areaManual"
                 type="text"
+                inputMode="text"
+                enterKeyHint="next"
                 autoComplete="off"
                 value={areaManual}
                 onChange={(e) => setAreaManual(e.target.value)}
@@ -410,6 +413,8 @@ export function RegistroForm() {
                 id="reg-parroquia-manual"
                 name="parroquiaManual"
                 type="text"
+                inputMode="text"
+                enterKeyHint="next"
                 autoComplete="off"
                 value={parroquiaManual}
                 onChange={(e) => setParroquiaManual(e.target.value)}
@@ -425,6 +430,8 @@ export function RegistroForm() {
                 id="reg-iglesia-manual"
                 name="iglesiaManual"
                 type="text"
+                inputMode="text"
+                enterKeyHint="done"
                 autoComplete="off"
                 value={iglesiaManual}
                 onChange={(e) => setIglesiaManual(e.target.value)}

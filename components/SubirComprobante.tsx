@@ -293,6 +293,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
           type="text"
           inputMode="decimal"
           autoComplete="off"
+          enterKeyHint="done"
           placeholder="ej. 35 o 35,50"
           value={montoStr}
           disabled={loading}
