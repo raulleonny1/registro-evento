@@ -15,6 +15,7 @@ import {
 } from "@/lib/eventoPrecio";
 import { labelParroquiaFirestore } from "@/lib/iereParroquias";
 import type { Html5Qrcode } from "html5-qrcode";
+import { iosDecimalMoneyInputProps } from "@/lib/iosKeyboardHints";
 
 const READER_ID = "checkin-qr-reader";
 
@@ -442,7 +443,7 @@ export default function CheckInClient() {
                       Cobrar diferencia en puerta (€)
                       <input
                         type="text"
-                        inputMode="decimal"
+                        {...iosDecimalMoneyInputProps}
                         autoComplete="off"
                         enterKeyHint="done"
                         value={puertaMonto}

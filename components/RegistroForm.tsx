@@ -328,6 +328,9 @@ export function RegistroForm() {
           autoComplete="tel"
           type="tel"
           inputMode="tel"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           enterKeyHint="next"
           value={whatsapp}
           onChange={(e) => setWhatsapp(e.target.value)}

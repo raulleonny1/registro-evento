@@ -30,6 +30,7 @@ import {
   normalizeEstado,
   REGISTRO_ESTADOS,
 } from "@/lib/registroEstados";
+import { iosDigitOnlyInputProps } from "@/lib/iosKeyboardHints";
 import { soloDigitos } from "@/lib/phoneDigits";
 
 type Found = {
@@ -216,9 +217,7 @@ export function ContinuarRegistro() {
           <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Últimos 4 dígitos
             <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
+              {...iosDigitOnlyInputProps}
               autoComplete="off"
               maxLength={8}
               value={digitos}

@@ -15,6 +15,7 @@ import {
   pendienteEuros,
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
+import { iosDecimalMoneyInputProps } from "@/lib/iosKeyboardHints";
 import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
 
 const ACCEPT = "image/*,.pdf,application/pdf";
@@ -265,7 +266,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
+    <form noValidate onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
       {depositadoActual != null && pendiente != null && (
         <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900/50 dark:text-zinc-200">
           Opción: {etiquetaModalidadRegistro(modalidadRegistro)}. Total entrada:{" "}
@@ -291,7 +292,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
         Importe de este comprobante (€)
         <input
           type="text"
-          inputMode="decimal"
+          {...iosDecimalMoneyInputProps}
           autoComplete="off"
           enterKeyHint="done"
           placeholder="ej. 35 o 35,50"
