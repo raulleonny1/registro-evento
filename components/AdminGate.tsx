@@ -1,14 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ADMIN_ACCESS_CODE, ADMIN_SESSION_KEY } from "@/lib/adminAccess";
+
+const PIN_LEN = ADMIN_ACCESS_CODE.length;
 
 export function AdminGate({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [ok, setOk] = useState(false);
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
+
+  const attemptUnlock = useCallback((code: string) => {
+    if (code.trim() !== ADMIN_ACCESS_CODE) {
+      setError(true);
+      setPin("");
+      return;
+    }
+    try {
+      sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
+    } catch {
+      /* */
+    }
+    setOk(true);
+    setError(false);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -21,20 +38,14 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    if (pin.length !== PIN_LEN) return;
+    attemptUnlock(pin);
+  }, [pin, attemptUnlock]);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (pin.trim() === ADMIN_ACCESS_CODE) {
-      try {
-        sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
-      } catch {
-        /* */
-      }
-      setOk(true);
-      setError(false);
-    } else {
-      setError(true);
-      setPin("");
-    }
+    attemptUnlock(pin);
   }
 
   if (!mounted) {
@@ -61,9 +72,11 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
                 type="password"
                 inputMode="numeric"
                 autoComplete="off"
+                maxLength={PIN_LEN}
                 value={pin}
                 onChange={(e) => {
-                  setPin(e.target.value);
+                  const digits = e.target.value.replace(/\D/g, "").slice(0, PIN_LEN);
+                  setPin(digits);
                   setError(false);
                 }}
                 className="mt-2 min-h-[52px] w-full touch-manipulation rounded-xl border border-white/15 bg-black/30 px-4 py-3 text-center text-2xl tracking-[0.3em] text-white outline-none ring-rose-500/30 focus:border-rose-500/50 focus:ring-4"

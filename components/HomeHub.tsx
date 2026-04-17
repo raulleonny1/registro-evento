@@ -125,7 +125,7 @@ export function HomeHub() {
         </div>
 
         <footer className="mt-auto pt-12 text-center text-[10px] uppercase tracking-[0.2em] text-slate-400">
-          Iglesia Española Reformada Episcopal
+          Iglesia Española Reformada Episcopal 2026
         </footer>
       </div>
     </main>

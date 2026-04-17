@@ -31,7 +31,7 @@ export function RegistroOpciones() {
       <Link href="/registro/continuar" className={optClass}>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold text-slate-900 dark:text-white">
-            Continuar registro
+            ¿Ya realizaste el pago? Continuar registro
           </span>
           <span className="mt-0.5 block text-xs leading-snug text-slate-500 dark:text-zinc-400">
             Busca tu inscripción con los últimos 4 dígitos del teléfono.
