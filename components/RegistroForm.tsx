@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatFirebaseError } from "@/lib/firebaseError";
-import { areasIereEnOrden, iereParroquias, labelParroquia } from "@/lib/iereParroquias";
+import {
+  areasIereEnOrden,
+  iereParroquias,
+  type IereParroquia,
+} from "@/lib/iereParroquias";
 import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
 import { soloDigitos, ultimosDigitos } from "@/lib/phoneDigits";
 
@@ -44,8 +48,138 @@ const selectClass = `${fieldClass} cursor-pointer`;
 
 const labelClass = "text-sm font-semibold text-zinc-800 dark:text-zinc-200";
 
-/** Valor del &lt;select&gt; cuando el usuario indica datos a mano. */
+/** Valor del selector cuando el usuario indica datos a mano. */
 const OTRA_PARROQUIA = "__otra__";
+
+function ParroquiaLine({ p }: { p: IereParroquia }) {
+  return (
+    <span className="block leading-snug">
+      <span className="font-normal">{p.parroquia}</span>
+      <span className="text-zinc-400 dark:text-zinc-500"> — </span>
+      <span className="font-bold text-zinc-900 dark:text-zinc-100">{p.iglesia}</span>
+    </span>
+  );
+}
+
+function IglesiaParroquiaPicker({
+  id,
+  areas,
+  value,
+  onChange,
+}: {
+  id: string;
+  areas: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const selectedIdx =
+    value === "" || value === OTRA_PARROQUIA ? null : parseInt(value, 10);
+  const selectedValid =
+    selectedIdx != null &&
+    !Number.isNaN(selectedIdx) &&
+    selectedIdx >= 0 &&
+    selectedIdx < iereParroquias.length;
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        id={id}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        onClick={() => setOpen((o) => !o)}
+        className={`${selectClass} flex w-full items-center justify-between gap-2 text-left`}
+      >
+        <span className="min-w-0 flex-1">
+          {value === "" && (
+            <span className="text-zinc-400 dark:text-zinc-500">Pulsa para elegir tu parroquia</span>
+          )}
+          {value === OTRA_PARROQUIA &&
+            "Otra — mi área, parroquia o iglesia no aparecen en la lista"}
+          {selectedValid && selectedIdx != null && (
+            <ParroquiaLine p={iereParroquias[selectedIdx]} />
+          )}
+        </span>
+        <span aria-hidden className="shrink-0 text-zinc-400">
+          <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </span>
+      </button>
+      {open && (
+        <div
+          role="listbox"
+          className="absolute left-0 right-0 z-50 mt-1 max-h-72 overflow-y-auto rounded-xl border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-950"
+        >
+          {areas.map((area) => (
+            <div key={area}>
+              <div className="sticky top-0 z-10 bg-zinc-100 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                {area}
+              </div>
+              {iereParroquias
+                .map((p, globalIdx) => ({ p, globalIdx }))
+                .filter(({ p }) => p.area === area)
+                .map(({ p, globalIdx }) => {
+                  const isSel = value === String(globalIdx);
+                  return (
+                    <button
+                      key={`${p.parroquia}-${p.iglesia}-${globalIdx}`}
+                      type="button"
+                      role="option"
+                      aria-selected={isSel}
+                      className={`w-full px-3 py-2.5 text-left text-base transition hover:bg-rose-50 dark:hover:bg-rose-950/30 ${
+                        isSel ? "bg-rose-50/80 dark:bg-rose-950/40" : ""
+                      }`}
+                      onClick={() => {
+                        onChange(String(globalIdx));
+                        setOpen(false);
+                      }}
+                    >
+                      <ParroquiaLine p={p} />
+                    </button>
+                  );
+                })}
+            </div>
+          ))}
+          <div className="my-1 border-t border-zinc-200 dark:border-zinc-700" />
+          <button
+            type="button"
+            role="option"
+            aria-selected={value === OTRA_PARROQUIA}
+            className={`w-full px-3 py-2.5 text-left text-base transition hover:bg-rose-50 dark:hover:bg-rose-950/30 ${
+              value === OTRA_PARROQUIA ? "bg-rose-50/80 dark:bg-rose-950/40" : ""
+            }`}
+            onClick={() => {
+              onChange(OTRA_PARROQUIA);
+              setOpen(false);
+            }}
+          >
+            Otra — mi área, parroquia o iglesia no aparecen en la lista
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function RegistroForm() {
   const router = useRouter();
@@ -193,33 +327,12 @@ export function RegistroForm() {
         <label htmlFor="reg-parroquia" className={labelClass}>
           Iglesia IERE (área, ciudad, iglesia)
         </label>
-        <select
+        <IglesiaParroquiaPicker
           id="reg-parroquia"
-          name="parroquia"
-          required
+          areas={areas}
           value={parroquiaIdx}
-          onChange={(e) => setParroquiaIdx(e.target.value)}
-          className={selectClass}
-        >
-          <option value="" disabled>
-            Pulsa para elegir tu parroquia
-          </option>
-          {areas.map((area) => (
-            <optgroup key={area} label={area}>
-              {iereParroquias
-                .map((p, globalIdx) => ({ p, globalIdx }))
-                .filter(({ p }) => p.area === area)
-                .map(({ p, globalIdx }) => (
-                  <option key={`${p.parroquia}-${p.iglesia}-${globalIdx}`} value={String(globalIdx)}>
-                    {labelParroquia(p)}
-                  </option>
-                ))}
-            </optgroup>
-          ))}
-          <option value={OTRA_PARROQUIA}>
-            Otra — mi área, parroquia o iglesia no aparecen en la lista
-          </option>
-        </select>
+          onChange={setParroquiaIdx}
+        />
         {esOtra && (
           <div className="mt-4 space-y-4 rounded-xl border border-rose-200/80 bg-rose-50/50 p-4 dark:border-rose-500/25 dark:bg-rose-950/20">
             <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
