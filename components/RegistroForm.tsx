@@ -368,7 +368,7 @@ export function RegistroForm() {
             );
           })}
           <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-            Todas las inscripciones deben iniciar con un depósito mínimo de {MINIMO_INSCRIPCION_EUR} EUR.
+            Para la inscripción se debe hacer una reserva de {MINIMO_INSCRIPCION_EUR} EUR. O su pago en totalidad.
           </p>
         </div>
       </div>
