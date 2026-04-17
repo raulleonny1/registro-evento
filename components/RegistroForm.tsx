@@ -12,6 +12,13 @@ import {
 } from "@/lib/iereParroquias";
 import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
 import { soloDigitos, ultimosDigitos } from "@/lib/phoneDigits";
+import {
+  MODALIDADES_REGISTRO,
+  MINIMO_INSCRIPCION_EUR,
+  costoEventoEuros,
+  etiquetaModalidadRegistro,
+  type ModalidadRegistro,
+} from "@/lib/eventoPrecio";
 
 const SUBMIT_TIMEOUT_MS = 35_000;
 
@@ -190,6 +197,9 @@ export function RegistroForm() {
   const [areaManual, setAreaManual] = useState("");
   const [parroquiaManual, setParroquiaManual] = useState("");
   const [iglesiaManual, setIglesiaManual] = useState("");
+  const [modalidadRegistro, setModalidadRegistro] = useState<ModalidadRegistro>(
+    MODALIDADES_REGISTRO.completo_25_27,
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -250,6 +260,7 @@ export function RegistroForm() {
           whatsappDigitos,
           whatsappUltimos4,
           parroquia: parroquiaPayload,
+          modalidadRegistro,
           estado: REGISTRO_ESTADOS.pendiente_pago,
           fecha: serverTimestamp(),
         }),
@@ -322,6 +333,44 @@ export function RegistroForm() {
           placeholder="Ej. +34 612 345 678"
           className={fieldClass}
         />
+      </div>
+      <div className="space-y-2">
+        <p className={labelClass}>Opciones de asistencia</p>
+        <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
+          {(Object.values(MODALIDADES_REGISTRO) as ModalidadRegistro[]).map((opt) => {
+            const selected = modalidadRegistro === opt;
+            return (
+              <label
+                key={opt}
+                className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-3 transition ${
+                  selected
+                    ? "border-rose-300 bg-rose-50 dark:border-rose-500/40 dark:bg-rose-950/30"
+                    : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="modalidadRegistro"
+                  value={opt}
+                  checked={selected}
+                  onChange={() => setModalidadRegistro(opt)}
+                  className="mt-1 size-4 accent-rose-600"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    {etiquetaModalidadRegistro(opt)}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-zinc-600 dark:text-zinc-400">
+                    Precio: {costoEventoEuros(opt)} EUR
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+          <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Todas las inscripciones deben iniciar con un depósito mínimo de {MINIMO_INSCRIPCION_EUR} EUR.
+          </p>
+        </div>
       </div>
       <div className="space-y-2">
         <label htmlFor="reg-parroquia" className={labelClass}>

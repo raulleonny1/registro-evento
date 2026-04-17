@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getFirestoreLazy } from "@/lib/firestoreClient";
-import { formatFirebaseError } from "@/lib/firebaseError";
-import { COSTO_EVENTO_EUR, formatEuros, pendienteEuros } from "@/lib/eventoPrecio";
+import { formatEuros, normalizeModalidadRegistro, pendienteEuros } from "@/lib/eventoPrecio";
 
 type Deudor = {
   id: string;
@@ -36,10 +35,15 @@ export default function AdminRecaudacionScreen() {
       const deudores: Deudor[] = [];
 
       for (const d of snap.docs) {
-        const x = d.data() as { nombre?: unknown; montoDepositadoEuros?: unknown };
+        const x = d.data() as {
+          nombre?: unknown;
+          montoDepositadoEuros?: unknown;
+          modalidadRegistro?: unknown;
+        };
         const md = Number(x.montoDepositadoEuros ?? 0);
         const m = Number.isFinite(md) ? md : 0;
-        const pend = pendienteEuros(m);
+        const modalidad = normalizeModalidadRegistro(x.modalidadRegistro);
+        const pend = pendienteEuros(m, modalidad);
         totalRecaudado += m;
         totalPendiente += pend;
         if (pend > 0.01) {
@@ -143,7 +147,7 @@ export default function AdminRecaudacionScreen() {
             {formatEuros(totalPendiente)}
           </p>
           <p className="mt-2 text-xs text-amber-200/60">
-            Entrada {formatEuros(COSTO_EVENTO_EUR)} por persona; suma de lo que aún deben.
+            Suma de lo pendiente según la modalidad elegida por cada inscrita.
           </p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-5 shadow-lg shadow-black/20 sm:col-span-2 lg:col-span-2">

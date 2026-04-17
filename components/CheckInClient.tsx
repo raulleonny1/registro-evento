@@ -4,9 +4,14 @@ import { doc, getDoc, increment, updateDoc } from "firebase/firestore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { db } from "@/lib/firebase";
 import {
+  MINIMO_INSCRIPCION_EUR,
+  costoEventoEuros,
+  etiquetaModalidadRegistro,
   formatEuros,
+  normalizeModalidadRegistro,
   parseMontoEuros,
   pendienteEuros,
+  type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
 import { labelParroquiaFirestore } from "@/lib/iereParroquias";
 import type { Html5Qrcode } from "html5-qrcode";
@@ -21,6 +26,8 @@ type ResultAllow = {
   whatsapp?: string;
   parroquiaLine?: string;
   estadoPago: string;
+  modalidadRegistro: ModalidadRegistro;
+  totalEntradaEuros: number;
   montoDepositadoEuros: number;
   pendienteEuros: number;
 };
@@ -156,6 +163,7 @@ export default function CheckInClient() {
           playFeedback(true);
           const montoDep = Number(d.montoDepositadoEuros ?? 0);
           const depOk = Number.isFinite(montoDep) ? montoDep : 0;
+          const modalidad = normalizeModalidadRegistro(d.modalidadRegistro);
           setResult({
             kind: "allow",
             registroId: id,
@@ -164,8 +172,10 @@ export default function CheckInClient() {
             whatsapp: whatsapp || undefined,
             parroquiaLine,
             estadoPago: estadoPagoLabel(estado),
+            modalidadRegistro: modalidad,
+            totalEntradaEuros: costoEventoEuros(modalidad),
             montoDepositadoEuros: depOk,
-            pendienteEuros: pendienteEuros(depOk),
+            pendienteEuros: pendienteEuros(depOk, modalidad),
           });
         } else {
           playFeedback(false);
@@ -333,7 +343,12 @@ export default function CheckInClient() {
       }
       const prev = Number(snap.data()?.montoDepositadoEuros ?? 0);
       const prevOk = Number.isFinite(prev) ? prev : 0;
-      const pend = pendienteEuros(prevOk);
+      const modalidad = normalizeModalidadRegistro(snap.data()?.modalidadRegistro);
+      const pend = pendienteEuros(prevOk, modalidad);
+      if (prevOk < 0.01 && monto + 0.001 < MINIMO_INSCRIPCION_EUR) {
+        setPuertaError(`El primer pago debe ser al menos ${formatEuros(MINIMO_INSCRIPCION_EUR)}.`);
+        return;
+      }
       if (monto > pend + 0.001) {
         setPuertaError(
           pend < 0.01
@@ -348,8 +363,10 @@ export default function CheckInClient() {
       const nuevo = prevOk + monto;
       setResult({
         ...result,
+        modalidadRegistro: modalidad,
+        totalEntradaEuros: costoEventoEuros(modalidad),
         montoDepositadoEuros: nuevo,
-        pendienteEuros: pendienteEuros(nuevo),
+        pendienteEuros: pendienteEuros(nuevo, modalidad),
       });
       setPuertaMonto("");
     } catch (e) {
@@ -404,6 +421,14 @@ export default function CheckInClient() {
               <div className="mt-4 rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-left shadow-inner">
                 <p className="text-base font-semibold">Pago entrada</p>
                 <p className="mt-1 text-base">
+                  <span className="text-white/80">Modalidad: </span>
+                  {etiquetaModalidadRegistro(result.modalidadRegistro)}
+                </p>
+                <p className="mt-1 text-base">
+                  <span className="text-white/80">Total entrada: </span>
+                  {formatEuros(result.totalEntradaEuros)}
+                </p>
+                <p className="text-base">
                   <span className="text-white/80">Pagado: </span>
                   {formatEuros(result.montoDepositadoEuros)}
                 </p>

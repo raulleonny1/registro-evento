@@ -8,11 +8,22 @@ import {
   getDoc,
   getDocs,
   query,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatFirebaseError } from "@/lib/firebaseError";
 import { SubirComprobante } from "@/components/SubirComprobante";
+import {
+  MODALIDADES_REGISTRO,
+  MINIMO_INSCRIPCION_EUR,
+  costoEventoEuros,
+  etiquetaModalidadRegistro,
+  formatEuros,
+  normalizeModalidadRegistro,
+  pendienteEuros,
+  type ModalidadRegistro,
+} from "@/lib/eventoPrecio";
 import {
   esPendientePago,
   etiquetaEstado,
@@ -27,6 +38,8 @@ type Found = {
   email: string;
   estado: string;
   comprobanteURL?: string;
+  modalidadRegistro: ModalidadRegistro;
+  montoDepositadoEuros: number;
 };
 
 export function ContinuarRegistro() {
@@ -36,6 +49,8 @@ export function ContinuarRegistro() {
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<Found[] | null>(null);
   const [selected, setSelected] = useState<Found | null>(null);
+  const [guardandoModalidad, setGuardandoModalidad] = useState(false);
+  const [modalidadMsg, setModalidadMsg] = useState<string | null>(null);
 
   async function buscarPorUltimos4() {
     const last4 = soloDigitos(digitos).slice(-4);
@@ -47,6 +62,7 @@ export function ContinuarRegistro() {
     setLoading(true);
     setResults(null);
     setSelected(null);
+    setModalidadMsg(null);
     try {
       const q = query(
         collection(db, "registros"),
@@ -61,6 +77,8 @@ export function ContinuarRegistro() {
           email: String(x.email ?? ""),
           estado: normalizeEstado(String(x.estado ?? "")),
           comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
+          modalidadRegistro: normalizeModalidadRegistro(x.modalidadRegistro),
+          montoDepositadoEuros: Number(x.montoDepositadoEuros ?? 0) || 0,
         };
       });
       list.sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -89,6 +107,7 @@ export function ContinuarRegistro() {
     setLoading(true);
     setResults(null);
     setSelected(null);
+    setModalidadMsg(null);
     try {
       const snap = await getDoc(doc(db, "registros", id));
       if (!snap.exists()) {
@@ -103,6 +122,8 @@ export function ContinuarRegistro() {
         email: String(x.email ?? ""),
         estado: normalizeEstado(String(x.estado ?? "")),
         comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
+        modalidadRegistro: normalizeModalidadRegistro(x.modalidadRegistro),
+        montoDepositadoEuros: Number(x.montoDepositadoEuros ?? 0) || 0,
       };
       setResults([f]);
       setSelected(f);
@@ -125,9 +146,32 @@ export function ContinuarRegistro() {
         email: String(x.email ?? ""),
         estado: normalizeEstado(String(x.estado ?? "")),
         comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
+        modalidadRegistro: normalizeModalidadRegistro(x.modalidadRegistro),
+        montoDepositadoEuros: Number(x.montoDepositadoEuros ?? 0) || 0,
       });
     } catch {
       /* ignorar */
+    }
+  }
+
+  async function guardarModalidadRegistro(next: ModalidadRegistro) {
+    if (!selected || next === selected.modalidadRegistro) return;
+    setGuardandoModalidad(true);
+    setModalidadMsg(null);
+    setError(null);
+    try {
+      await updateDoc(doc(db, "registros", selected.id), {
+        modalidadRegistro: next,
+      });
+      setSelected((prev) => (prev ? { ...prev, modalidadRegistro: next } : prev));
+      setResults((prev) =>
+        prev?.map((item) => (item.id === selected.id ? { ...item, modalidadRegistro: next } : item)) ?? null,
+      );
+      setModalidadMsg("Opción de asistencia actualizada correctamente.");
+    } catch (e) {
+      setError(formatFirebaseError(e));
+    } finally {
+      setGuardandoModalidad(false);
     }
   }
 
@@ -135,6 +179,10 @@ export function ContinuarRegistro() {
     selected &&
     (esPendientePago(selected.estado) ||
       normalizeEstado(selected.estado) === REGISTRO_ESTADOS.revision);
+  const totalSeleccionado = selected ? costoEventoEuros(selected.modalidadRegistro) : null;
+  const pendienteSeleccionado = selected
+    ? pendienteEuros(selected.montoDepositadoEuros, selected.modalidadRegistro)
+    : null;
 
   const fieldClass =
     "min-h-[52px] w-full touch-manipulation rounded-xl border border-zinc-200 bg-white px-4 py-3.5 text-base text-zinc-900 shadow-sm outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-500/15 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100";
@@ -252,6 +300,57 @@ export function ContinuarRegistro() {
               {etiquetaEstado(selected.estado)}
             </span>
           </p>
+          <div className="mt-4 rounded-xl border border-zinc-200/80 bg-white/80 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+            <p className="text-sm font-semibold text-zinc-900 dark:text-white">
+              Opción elegida en el registro
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+              Puedes cambiarla aquí si te equivocaste, incluso después de subir el depósito.
+            </p>
+            <div className="mt-3 space-y-2">
+              {(Object.values(MODALIDADES_REGISTRO) as ModalidadRegistro[]).map((opt) => {
+                const checked = selected.modalidadRegistro === opt;
+                return (
+                  <label
+                    key={opt}
+                    className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2.5 ${
+                      checked
+                        ? "border-rose-300 bg-rose-50 dark:border-rose-500/40 dark:bg-rose-950/30"
+                        : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`modalidad-${selected.id}`}
+                      value={opt}
+                      checked={checked}
+                      disabled={guardandoModalidad}
+                      onChange={() => void guardarModalidadRegistro(opt)}
+                      className="mt-1 size-4 accent-rose-600"
+                    />
+                    <span className="text-sm text-zinc-800 dark:text-zinc-200">
+                      {etiquetaModalidadRegistro(opt)} ({costoEventoEuros(opt)} EUR)
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-xs text-zinc-600 dark:text-zinc-400">
+              Mínimo de inscripción: {MINIMO_INSCRIPCION_EUR} EUR.
+            </p>
+            {totalSeleccionado != null && pendienteSeleccionado != null && (
+              <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-300">
+                Total actual: {formatEuros(totalSeleccionado)}. Depositado:{" "}
+                {formatEuros(selected.montoDepositadoEuros)}. Pendiente:{" "}
+                {formatEuros(pendienteSeleccionado)}.
+              </p>
+            )}
+            {modalidadMsg && (
+              <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                {modalidadMsg}
+              </p>
+            )}
+          </div>
 
           {puedeSubirComprobante && (
             <div className="mt-6 rounded-2xl border border-rose-200/80 bg-white/80 p-4 dark:border-rose-500/25 dark:bg-zinc-900/50">

@@ -5,10 +5,14 @@ import { doc, getDoc, increment, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatFirebaseError } from "@/lib/firebaseError";
 import {
-  COSTO_EVENTO_EUR,
+  MINIMO_INSCRIPCION_EUR,
+  costoEventoEuros,
+  etiquetaModalidadRegistro,
   formatEuros,
+  normalizeModalidadRegistro,
   parseMontoEuros,
   pendienteEuros,
+  type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
 import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
 
@@ -106,6 +110,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [montoStr, setMontoStr] = useState("");
   const [depositadoActual, setDepositadoActual] = useState<number | null>(null);
+  const [modalidadRegistro, setModalidadRegistro] = useState<ModalidadRegistro | null>(null);
   const [loading, setLoading] = useState(false);
   const [progressPct, setProgressPct] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -121,6 +126,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
         if (cancelled || !snap.exists()) return;
         const n = Number(snap.data()?.montoDepositadoEuros ?? 0);
         setDepositadoActual(Number.isFinite(n) ? n : 0);
+        setModalidadRegistro(normalizeModalidadRegistro(snap.data()?.modalidadRegistro));
       } catch {
         if (!cancelled) setDepositadoActual(null);
       }
@@ -163,7 +169,12 @@ export function SubirComprobante({ id, onUploaded }: Props) {
     const preData = snapPre.data() as { montoDepositadoEuros?: unknown } | undefined;
     const prev = Number(preData?.montoDepositadoEuros ?? 0);
     const prevOk = Number.isFinite(prev) ? prev : 0;
-    const pendiente = pendienteEuros(prevOk);
+    const modalidad = normalizeModalidadRegistro((snapPre.data() as { modalidadRegistro?: unknown } | undefined)?.modalidadRegistro);
+    const pendiente = pendienteEuros(prevOk, modalidad);
+    if (prevOk < 0.01 && monto + 0.001 < MINIMO_INSCRIPCION_EUR) {
+      setError(`El primer depósito debe ser al menos ${formatEuros(MINIMO_INSCRIPCION_EUR)}.`);
+      return;
+    }
     if (monto > pendiente + 0.001) {
       setError(
         pendiente < 0.01
@@ -197,6 +208,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
       setMontoStr("");
       const nuevo = prevOk + monto;
       setDepositadoActual(nuevo);
+      setModalidadRegistro(modalidad);
       setProgressPct(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (cameraInputRef.current) cameraInputRef.current.value = "";
@@ -225,7 +237,8 @@ export function SubirComprobante({ id, onUploaded }: Props) {
   }
 
   const pendiente =
-    depositadoActual != null ? pendienteEuros(depositadoActual) : null;
+    depositadoActual != null ? pendienteEuros(depositadoActual, modalidadRegistro) : null;
+  const totalEntrada = costoEventoEuros(modalidadRegistro);
 
   if (success) {
     return (
@@ -239,7 +252,8 @@ export function SubirComprobante({ id, onUploaded }: Props) {
     <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
       {depositadoActual != null && pendiente != null && (
         <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900/50 dark:text-zinc-200">
-          Total entrada: {formatEuros(COSTO_EVENTO_EUR)}. Llevas{" "}
+          Opción: {etiquetaModalidadRegistro(modalidadRegistro)}. Total entrada:{" "}
+          {formatEuros(totalEntrada)}. Llevas{" "}
           <span className="font-semibold">{formatEuros(depositadoActual)}</span> registrados.
           {pendiente > 0.01 ? (
             <>
@@ -252,6 +266,9 @@ export function SubirComprobante({ id, onUploaded }: Props) {
               Importe completo.
             </span>
           )}
+          <span className="mt-1 block text-xs text-zinc-600 dark:text-zinc-400">
+            Mínimo de inscripción: {formatEuros(MINIMO_INSCRIPCION_EUR)}.
+          </span>
         </p>
       )}
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">

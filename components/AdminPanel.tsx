@@ -6,7 +6,13 @@ import { getFirestoreLazy } from "@/lib/firestoreClient";
 import { formatFirebaseError } from "@/lib/firebaseError";
 import { deleteComprobanteFiles } from "@/lib/deleteRegistroAssets";
 import { labelParroquiaFirestore } from "@/lib/iereParroquias";
-import { formatEuros, pendienteEuros } from "@/lib/eventoPrecio";
+import {
+  etiquetaModalidadRegistro,
+  formatEuros,
+  normalizeModalidadRegistro,
+  pendienteEuros,
+  type ModalidadRegistro,
+} from "@/lib/eventoPrecio";
 import { etiquetaEstado, normalizeEstado, REGISTRO_ESTADOS } from "@/lib/registroEstados";
 
 type Row = {
@@ -18,6 +24,7 @@ type Row = {
   estado: string;
   comprobanteURL?: string;
   montoDepositadoEuros: number;
+  modalidadRegistro: ModalidadRegistro;
 };
 
 function EstadoBadge({ estado }: { estado: string }) {
@@ -42,11 +49,21 @@ function EstadoBadge({ estado }: { estado: string }) {
 const btnBase =
   "touch-manipulation rounded-xl px-3 py-3 text-xs font-semibold transition active:scale-[0.98] disabled:opacity-40 sm:py-2";
 
+type ComprobantePreview = {
+  url: string;
+  nombre: string;
+};
+
+function isPdfUrl(url: string): boolean {
+  return /\.pdf($|[?#])/i.test(url);
+}
+
 export default function AdminPanel() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Row | null>(null);
+  const [previewTarget, setPreviewTarget] = useState<ComprobantePreview | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -75,6 +92,7 @@ export default function AdminPanel() {
           estado: String(x.estado ?? ""),
           comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
           montoDepositadoEuros: Number.isFinite(md) ? md : 0,
+          modalidadRegistro: normalizeModalidadRegistro(x.modalidadRegistro),
         };
       });
       list.sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -142,6 +160,15 @@ export default function AdminPanel() {
       setBusyId(null);
     }
   }
+
+  useEffect(() => {
+    if (!previewTarget) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setPreviewTarget(null);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [previewTarget]);
 
   if (error && !rows?.length) {
     return (
@@ -215,6 +242,9 @@ export default function AdminPanel() {
                     Parroquia
                   </th>
                   <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    Modalidad
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
                     Estado
                   </th>
                   <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
@@ -245,6 +275,9 @@ export default function AdminPanel() {
                     <td className="max-w-[220px] px-4 py-3 text-xs leading-snug text-zinc-400">
                       {r.parroquiaLabel}
                     </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-300">
+                      {etiquetaModalidadRegistro(r.modalidadRegistro)}
+                    </td>
                     <td className="px-4 py-3">
                       <EstadoBadge estado={r.estado} />
                     </td>
@@ -252,18 +285,22 @@ export default function AdminPanel() {
                       {formatEuros(r.montoDepositadoEuros)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 tabular-nums text-amber-200/90">
-                      {formatEuros(pendienteEuros(r.montoDepositadoEuros))}
+                      {formatEuros(pendienteEuros(r.montoDepositadoEuros, r.modalidadRegistro))}
                     </td>
                     <td className="px-4 py-3">
                       {r.comprobanteURL ? (
-                        <a
-                          href={r.comprobanteURL}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewTarget({
+                              url: r.comprobanteURL ?? "",
+                              nombre: r.nombre,
+                            })
+                          }
                           className="font-medium text-rose-300 underline decoration-rose-500/50 underline-offset-2 hover:text-rose-200"
                         >
                           Ver archivo
-                        </a>
+                        </button>
                       ) : (
                         <span className="text-zinc-600">—</span>
                       )}
@@ -340,9 +377,15 @@ export default function AdminPanel() {
                       Pendiente
                     </dt>
                     <dd className="tabular-nums text-amber-200/90">
-                      {formatEuros(pendienteEuros(r.montoDepositadoEuros))}
+                      {formatEuros(pendienteEuros(r.montoDepositadoEuros, r.modalidadRegistro))}
                     </dd>
                   </div>
+                </div>
+                <div>
+                  <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                    Modalidad
+                  </dt>
+                  <dd className="text-zinc-300">{etiquetaModalidadRegistro(r.modalidadRegistro)}</dd>
                 </div>
                 <div>
                   <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
@@ -364,14 +407,18 @@ export default function AdminPanel() {
                 </div>
               </dl>
               {r.comprobanteURL && (
-                <a
-                  href={r.comprobanteURL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPreviewTarget({
+                      url: r.comprobanteURL ?? "",
+                      nombre: r.nombre,
+                    })
+                  }
                   className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-950/30 px-3 py-2.5 text-sm font-medium text-rose-200 active:bg-rose-900/50"
                 >
                   Ver comprobante
-                </a>
+                </button>
               )}
               <div className="mt-4 grid grid-cols-3 gap-2">
                 <button
@@ -466,6 +513,65 @@ export default function AdminPanel() {
                   "Sí, eliminar"
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {previewTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="preview-dialog-title"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            aria-label="Cerrar visor de comprobante"
+            onClick={() => setPreviewTarget(null)}
+          />
+          <div className="relative flex h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-white/15 border-b-0 bg-zinc-950 shadow-2xl sm:h-[90dvh] sm:max-w-5xl sm:rounded-2xl sm:border-b">
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
+              <div className="min-w-0">
+                <h2 id="preview-dialog-title" className="truncate text-sm font-semibold text-white sm:text-base">
+                  Comprobante de {previewTarget.nombre}
+                </h2>
+                <p className="mt-0.5 text-xs text-zinc-400">Pulsa Esc o Cerrar para volver al panel.</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <a
+                  href={previewTarget.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="touch-manipulation inline-flex min-h-[40px] items-center rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-white/5"
+                >
+                  Abrir aparte
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewTarget(null)}
+                  className="touch-manipulation inline-flex min-h-[40px] items-center rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-500"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 bg-zinc-900">
+              {isPdfUrl(previewTarget.url) ? (
+                <iframe
+                  title="Vista previa del comprobante"
+                  src={previewTarget.url}
+                  className="h-full w-full"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center p-3 sm:p-6">
+                  <img
+                    src={previewTarget.url}
+                    alt={`Comprobante de ${previewTarget.nombre}`}
+                    className="max-h-full max-w-full rounded-lg object-contain"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
