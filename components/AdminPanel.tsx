@@ -64,47 +64,77 @@ export default function AdminPanel() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Row | null>(null);
   const [previewTarget, setPreviewTarget] = useState<ComprobantePreview | null>(null);
+  const mapRows = useCallback((docs: Array<{ id: string; data: () => Record<string, unknown> }>): Row[] => {
+    const list: Row[] = docs.map((d) => {
+      const x = d.data();
+      const par = x.parroquia as
+        | { area?: string; parroquia?: string; iglesia?: string; ciudad?: string; nombre?: string }
+        | undefined;
+      const parroquiaLabel = labelParroquiaFirestore(par);
+      const wa =
+        typeof x.whatsapp === "string"
+          ? x.whatsapp
+          : typeof x.telefono === "string"
+            ? x.telefono
+            : "";
+      const md = Number(x.montoDepositadoEuros ?? 0);
+      return {
+        id: d.id,
+        nombre: String(x.nombre ?? ""),
+        email: String(x.email ?? ""),
+        whatsapp: wa,
+        parroquiaLabel,
+        estado: String(x.estado ?? ""),
+        comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
+        montoDepositadoEuros: Number.isFinite(md) ? md : 0,
+        modalidadRegistro: normalizeModalidadRegistro(x.modalidadRegistro),
+      };
+    });
+    list.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    return list;
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    let unsub: (() => void) | null = null;
+
+    void (async () => {
+      try {
+        const { fs, db } = await getFirestoreLazy();
+        if (!active) return;
+        const { collection, onSnapshot } = fs;
+        unsub = onSnapshot(
+          collection(db, "registros"),
+          (snap) => {
+            setRows(mapRows(snap.docs));
+            setError(null);
+          },
+          (e) => {
+            setError(formatFirebaseError(e));
+          },
+        );
+      } catch (e) {
+        setError(formatFirebaseError(e));
+      }
+    })();
+
+    return () => {
+      active = false;
+      unsub?.();
+    };
+  }, [mapRows]);
 
   const load = useCallback(async () => {
     try {
       const { fs, db } = await getFirestoreLazy();
       const { collection, getDocs } = fs;
       const snap = await getDocs(collection(db, "registros"));
-      const list: Row[] = snap.docs.map((d) => {
-        const x = d.data();
-        const par = x.parroquia as
-          | { area?: string; parroquia?: string; iglesia?: string; ciudad?: string; nombre?: string }
-          | undefined;
-        const parroquiaLabel = labelParroquiaFirestore(par);
-        const wa =
-          typeof x.whatsapp === "string"
-            ? x.whatsapp
-            : typeof x.telefono === "string"
-              ? x.telefono
-              : "";
-        const md = Number(x.montoDepositadoEuros ?? 0);
-        return {
-          id: d.id,
-          nombre: String(x.nombre ?? ""),
-          email: String(x.email ?? ""),
-          whatsapp: wa,
-          parroquiaLabel,
-          estado: String(x.estado ?? ""),
-          comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
-          montoDepositadoEuros: Number.isFinite(md) ? md : 0,
-          modalidadRegistro: normalizeModalidadRegistro(x.modalidadRegistro),
-        };
-      });
-      list.sort((a, b) => a.nombre.localeCompare(b.nombre));
-      setRows(list);
+      setRows(mapRows(snap.docs));
+      setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al listar");
+      setError(formatFirebaseError(e));
     }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  }, [mapRows]);
 
   async function aprobar(registroId: string) {
     setBusyId(registroId);
