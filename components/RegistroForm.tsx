@@ -263,6 +263,8 @@ export function RegistroForm() {
           modalidadRegistro,
           estado: REGISTRO_ESTADOS.pendiente_pago,
           fecha: serverTimestamp(),
+          aceptoDatosEvento: true,
+          aceptoDatosEventoEn: serverTimestamp(),
         }),
         SUBMIT_TIMEOUT_MS,
         "El registro",

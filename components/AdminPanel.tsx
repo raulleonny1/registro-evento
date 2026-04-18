@@ -25,6 +25,8 @@ type Row = {
   comprobanteURL?: string;
   montoDepositadoEuros: number;
   modalidadRegistro: ModalidadRegistro;
+  /** Consentimiento RGPD al inscribirse (nuevos registros). */
+  aceptoDatosEvento: boolean | null;
 };
 
 function EstadoBadge({ estado }: { estado: string }) {
@@ -43,6 +45,22 @@ function EstadoBadge({ estado }: { estado: string }) {
     >
       {etiquetaEstado(estado)}
     </span>
+  );
+}
+
+function AceptoDatosSelect({ value }: { value: boolean | null }) {
+  const v = value === true ? "si" : value === false ? "no" : "no_consta";
+  return (
+    <select
+      disabled
+      value={v}
+      aria-label="Aceptó el aviso de datos para este evento"
+      className="max-w-[11rem] cursor-default rounded-lg border border-white/15 bg-zinc-900/80 py-1.5 pl-2 pr-7 text-xs font-medium text-zinc-200"
+    >
+      <option value="si">Sí, aceptó</option>
+      <option value="no">No</option>
+      <option value="no_consta">No consta</option>
+    </select>
   );
 }
 
@@ -78,6 +96,15 @@ export default function AdminPanel() {
             ? x.telefono
             : "";
       const md = Number(x.montoDepositadoEuros ?? 0);
+      const rawAcepto = x.aceptoDatosEvento;
+      const aceptoDatosEvento: boolean | null =
+        typeof rawAcepto === "boolean"
+          ? rawAcepto
+          : rawAcepto === "true"
+            ? true
+            : rawAcepto === "false"
+              ? false
+              : null;
       return {
         id: d.id,
         nombre: String(x.nombre ?? ""),
@@ -88,6 +115,7 @@ export default function AdminPanel() {
         comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
         montoDepositadoEuros: Number.isFinite(md) ? md : 0,
         modalidadRegistro: normalizeModalidadRegistro(x.modalidadRegistro),
+        aceptoDatosEvento,
       };
     });
     list.sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -256,7 +284,7 @@ export default function AdminPanel() {
         {/* Vista escritorio: tabla */}
         <div className="hidden overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/40 backdrop-blur-sm md:block">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[1180px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-white/10 bg-white/[0.04]">
                   <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
@@ -273,6 +301,9 @@ export default function AdminPanel() {
                   </th>
                   <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
                     Modalidad
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    Aviso datos
                   </th>
                   <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
                     Estado
@@ -307,6 +338,9 @@ export default function AdminPanel() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-300">
                       {etiquetaModalidadRegistro(r.modalidadRegistro)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <AceptoDatosSelect value={r.aceptoDatosEvento} />
                     </td>
                     <td className="px-4 py-3">
                       <EstadoBadge estado={r.estado} />
@@ -416,6 +450,14 @@ export default function AdminPanel() {
                     Modalidad
                   </dt>
                   <dd className="text-zinc-300">{etiquetaModalidadRegistro(r.modalidadRegistro)}</dd>
+                </div>
+                <div>
+                  <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                    Aviso datos (RGPD)
+                  </dt>
+                  <dd className="mt-1">
+                    <AceptoDatosSelect value={r.aceptoDatosEvento} />
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
