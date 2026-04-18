@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { SESSION_RGPD_ACEPTO } from "@/lib/registroConsent";
 
 export function RegistroNuevoPrivacidad() {
   const [acepta, setAcepta] = useState(false);
@@ -50,8 +51,13 @@ export function RegistroNuevoPrivacidad() {
           Volver
         </Link>
         <Link
-          href="/registro/nuevo/datos"
+          href="/registro/nuevo/datos?acepto=1"
           aria-disabled={!acepta}
+          onClick={() => {
+            if (typeof window !== "undefined" && acepta) {
+              sessionStorage.setItem(SESSION_RGPD_ACEPTO, "1");
+            }
+          }}
           className={`order-1 inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full px-6 text-sm font-semibold shadow-sm transition active:scale-[0.98] sm:order-2 ${
             acepta
               ? "bg-rose-600 text-white ring-2 ring-rose-600/30 hover:bg-rose-700"

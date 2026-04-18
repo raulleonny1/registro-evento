@@ -14,6 +14,7 @@ import {
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
 import { etiquetaEstado, normalizeEstado, REGISTRO_ESTADOS } from "@/lib/registroEstados";
+import { parseAceptoDatosEvento, REGISTRO_ACEPTO_DATOS_EVENTO } from "@/lib/registroConsent";
 
 type Row = {
   id: string;
@@ -96,15 +97,8 @@ export default function AdminPanel() {
             ? x.telefono
             : "";
       const md = Number(x.montoDepositadoEuros ?? 0);
-      const rawAcepto = x.aceptoDatosEvento;
-      const aceptoDatosEvento: boolean | null =
-        typeof rawAcepto === "boolean"
-          ? rawAcepto
-          : rawAcepto === "true"
-            ? true
-            : rawAcepto === "false"
-              ? false
-              : null;
+      const rawAcepto = x[REGISTRO_ACEPTO_DATOS_EVENTO];
+      const aceptoDatosEvento = parseAceptoDatosEvento(rawAcepto);
       return {
         id: d.id,
         nombre: String(x.nombre ?? ""),

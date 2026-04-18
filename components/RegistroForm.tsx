@@ -19,6 +19,7 @@ import {
   etiquetaModalidadRegistro,
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
+import { REGISTRO_ACEPTO_DATOS_EVENTO, SESSION_RGPD_ACEPTO } from "@/lib/registroConsent";
 
 const SUBMIT_TIMEOUT_MS = 35_000;
 
@@ -251,7 +252,6 @@ export function RegistroForm() {
     setLoading(true);
     try {
       const whatsappUltimos4 = ultimosDigitos(wa, 4);
-
       const ref = await withTimeout(
         addDoc(collection(db, "registros"), {
           nombre: nombreApellidos.trim(),
@@ -263,12 +263,15 @@ export function RegistroForm() {
           modalidadRegistro,
           estado: REGISTRO_ESTADOS.pendiente_pago,
           fecha: serverTimestamp(),
-          aceptoDatosEvento: true,
+          [REGISTRO_ACEPTO_DATOS_EVENTO]: true,
           aceptoDatosEventoEn: serverTimestamp(),
         }),
         SUBMIT_TIMEOUT_MS,
         "El registro",
       );
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem(SESSION_RGPD_ACEPTO);
+      }
       await router.push(`/registro/nuevo/exito?id=${encodeURIComponent(ref.id)}`);
     } catch (err) {
       setError(formatFirebaseError(err));
