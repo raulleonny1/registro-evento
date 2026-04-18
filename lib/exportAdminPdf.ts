@@ -3,13 +3,12 @@
 import html2pdf from "html2pdf.js";
 
 /**
- * Propiedades copiadas del DOM real al clon (valores ya resueltos a rgb/rgba en el navegador).
- * Evita que html2canvas vuelva a parsear CSS con funciones modernas (p. ej. lab() de Tailwind v4).
+ * Propiedades copiadas del DOM real al clon.
+ * No incluimos `background` abreviado (puede traer gradientes con lab()).
  */
 const CLONE_STYLE_PROPS = [
   "color",
   "backgroundColor",
-  "background",
   "borderTopColor",
   "borderRightColor",
   "borderBottomColor",
@@ -58,12 +57,59 @@ const CLONE_STYLE_PROPS = [
   "gridTemplateColumns",
 ] as const;
 
+let colorCanvas: HTMLCanvasElement | null = null;
+function getColor2d(): CanvasRenderingContext2D | null {
+  if (!colorCanvas) colorCanvas = document.createElement("canvas");
+  return colorCanvas.getContext("2d");
+}
+
+/**
+ * Chrome/Safari recientes devuelven a veces lab()/oklch() en getComputedStyle;
+ * html2canvas no los parsea. El canvas del navegador los convierte a rgb/hex.
+ */
+function coerceModernColorToRgb(input: string): string {
+  const t = input.trim();
+  if (!t || t === "transparent" || t === "none") return t;
+  if (!/lab\(|oklch\(|lch\(|color\(/i.test(t)) return t;
+
+  const ctx = getColor2d();
+  if (!ctx) return "#171717";
+  try {
+    ctx.fillStyle = "#000000";
+    ctx.fillStyle = t;
+    const out = ctx.fillStyle;
+    if (typeof out === "string" && !/lab\(|oklch\(|lch\(/i.test(out)) return out;
+  } catch {
+    /* */
+  }
+  return "#171717";
+}
+
+function safeCssValue(prop: string, value: string): string {
+  if (!value) return value;
+  if (!/lab\(|oklch\(|lch\(|color\(/i.test(value)) return value;
+
+  // Sombras y filtros pueden mezclar varios colores; html2canvas falla al parsearlos.
+  if (
+    prop === "box-shadow" ||
+    prop === "text-shadow" ||
+    prop === "filter" ||
+    prop === "backdrop-filter"
+  ) {
+    return "none";
+  }
+
+  return coerceModernColorToRgb(value);
+}
+
 function applyComputedStyles(orig: Element, clone: Element) {
   if (!(orig instanceof HTMLElement) || !(clone instanceof HTMLElement)) return;
   const cs = window.getComputedStyle(orig);
   for (const prop of CLONE_STYLE_PROPS) {
-    const v = cs.getPropertyValue(prop);
-    if (v) clone.style.setProperty(prop, v);
+    const raw = cs.getPropertyValue(prop);
+    if (!raw) continue;
+    const v = safeCssValue(prop, raw);
+    clone.style.setProperty(prop, v);
   }
 }
 
@@ -84,8 +130,28 @@ function stripExternalStylesFromClone(clonedDoc: Document) {
 }
 
 /**
+ * Último paso: cualquier estilo inline residual con lab()/oklch() en el clon.
+ */
+function sanitizeCloneInlineColors(root: HTMLElement) {
+  const walk = (el: HTMLElement) => {
+    const st = el.style;
+    for (let i = 0; i < st.length; i++) {
+      const prop = st[i];
+      const val = st.getPropertyValue(prop);
+      if (!val) continue;
+      const next = safeCssValue(prop, val);
+      if (next !== val) st.setProperty(prop, next);
+    }
+    for (let i = 0; i < el.children.length; i++) {
+      const ch = el.children[i];
+      if (ch instanceof HTMLElement) walk(ch);
+    }
+  };
+  walk(root);
+}
+
+/**
  * Genera un PDF a partir de un nodo HTML (informes de administración).
- * Debe ejecutarse solo en el navegador (módulo marcado "use client").
  */
 export async function exportHtmlToPdf(element: HTMLElement, filename: string): Promise<void> {
   if (typeof window === "undefined") {
@@ -108,6 +174,7 @@ export async function exportHtmlToPdf(element: HTMLElement, filename: string): P
       onclone: (clonedDoc: Document, clonedEl: HTMLElement) => {
         stripExternalStylesFromClone(clonedDoc);
         walkInlineStyles(element, clonedEl);
+        sanitizeCloneInlineColors(clonedEl);
       },
     },
     jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const },
@@ -118,7 +185,10 @@ export async function exportHtmlToPdf(element: HTMLElement, filename: string): P
 
   const timeoutMs = 90_000;
   const timeout = new Promise<never>((_, rej) => {
-    setTimeout(() => rej(new Error(`Tiempo de espera (${timeoutMs / 1000}s). Prueba con menos filas o recarga.`)), timeoutMs);
+    setTimeout(
+      () => rej(new Error(`Tiempo de espera (${timeoutMs / 1000}s). Prueba con menos filas o recarga.`)),
+      timeoutMs,
+    );
   });
 
   try {
