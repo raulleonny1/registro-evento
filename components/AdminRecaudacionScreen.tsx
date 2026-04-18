@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getFirestoreLazy } from "@/lib/firestoreClient";
-import { formatEuros, normalizeModalidadRegistro, pendienteEuros } from "@/lib/eventoPrecio";
+import {
+  MODALIDADES_REGISTRO,
+  formatEuros,
+  normalizeModalidadRegistro,
+  pendienteEuros,
+} from "@/lib/eventoPrecio";
 
 type Deudor = {
   id: string;
@@ -17,6 +22,10 @@ type Resumen = {
   personasConDeuda: number;
   deudores: Deudor[];
   totalRegistros: number;
+  /** Modalidad del 25 al 27 (incluye viernes). */
+  inscritosDesdeViernes: number;
+  /** Modalidad solo sábado 26 y domingo 27. */
+  inscritosSabadoDomingo: number;
 };
 
 export default function AdminRecaudacionScreen() {
@@ -32,6 +41,8 @@ export default function AdminRecaudacionScreen() {
 
       let totalRecaudado = 0;
       let totalPendiente = 0;
+      let inscritosDesdeViernes = 0;
+      let inscritosSabadoDomingo = 0;
       const deudores: Deudor[] = [];
 
       for (const d of snap.docs) {
@@ -43,6 +54,11 @@ export default function AdminRecaudacionScreen() {
         const md = Number(x.montoDepositadoEuros ?? 0);
         const m = Number.isFinite(md) ? md : 0;
         const modalidad = normalizeModalidadRegistro(x.modalidadRegistro);
+        if (modalidad === MODALIDADES_REGISTRO.sab_dom_26_27) {
+          inscritosSabadoDomingo += 1;
+        } else {
+          inscritosDesdeViernes += 1;
+        }
         const pend = pendienteEuros(m, modalidad);
         totalRecaudado += m;
         totalPendiente += pend;
@@ -63,6 +79,8 @@ export default function AdminRecaudacionScreen() {
         personasConDeuda: deudores.length,
         deudores,
         totalRegistros: snap.docs.length,
+        inscritosDesdeViernes,
+        inscritosSabadoDomingo,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al cargar");
@@ -103,7 +121,15 @@ export default function AdminRecaudacionScreen() {
     );
   }
 
-  const { totalRecaudado, totalPendiente, personasConDeuda, deudores, totalRegistros } = resumen;
+  const {
+    totalRecaudado,
+    totalPendiente,
+    personasConDeuda,
+    deudores,
+    totalRegistros,
+    inscritosDesdeViernes,
+    inscritosSabadoDomingo,
+  } = resumen;
 
   return (
     <div className="flex flex-col gap-8">
@@ -125,6 +151,50 @@ export default function AdminRecaudacionScreen() {
           Actualizar datos
         </button>
       </div>
+
+      <section aria-labelledby="asistencia-heading">
+        <h2 id="asistencia-heading" className="text-sm font-semibold text-zinc-300">
+          Inscripciones por asistencia
+        </h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          Según la modalidad elegida en el registro (25–27 septiembre de 2026).
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-sky-500/25 bg-sky-950/30 px-5 py-5 shadow-lg shadow-black/20">
+            <p className="text-xs font-semibold uppercase tracking-wider text-sky-300/80">
+              Inscritos en total
+            </p>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-sky-100 sm:text-3xl">
+              {totalRegistros}
+            </p>
+            <p className="mt-2 text-xs text-sky-200/60">
+              Todas las personas registradas en el sistema.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-violet-500/25 bg-violet-950/30 px-5 py-5 shadow-lg shadow-black/20">
+            <p className="text-xs font-semibold uppercase tracking-wider text-violet-300/80">
+              Desde el viernes
+            </p>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-violet-100 sm:text-3xl">
+              {inscritosDesdeViernes}
+            </p>
+            <p className="mt-2 text-xs text-violet-200/60">
+              Modalidad del 25 al 27 (incluye viernes 25, sábado 26 y domingo 27).
+            </p>
+          </div>
+          <div className="rounded-2xl border border-fuchsia-500/25 bg-fuchsia-950/25 px-5 py-5 shadow-lg shadow-black/20">
+            <p className="text-xs font-semibold uppercase tracking-wider text-fuchsia-300/80">
+              Sábado y domingo
+            </p>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-fuchsia-100 sm:text-3xl">
+              {inscritosSabadoDomingo}
+            </p>
+            <p className="mt-2 text-xs text-fuchsia-200/60">
+              Modalidad solo sábado 26 y domingo 27 (sin viernes).
+            </p>
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-emerald-500/25 bg-emerald-950/35 px-5 py-5 shadow-lg shadow-black/20">
