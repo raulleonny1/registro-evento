@@ -334,8 +334,11 @@ export default function AdminPanel() {
             </p>
           </header>
 
-          {/* Vista escritorio: tabla */}
-          <div className="hidden overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm md:block">
+          {/* Vista escritorio: tabla (data-admin-pdf: el PDF siempre usa solo esta vista) */}
+          <div
+            data-admin-pdf="desktop"
+            className="hidden overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm md:block"
+          >
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1180px] border-collapse text-left text-sm">
                 <thead>
@@ -473,8 +476,8 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          {/* Vista móvil: tarjetas */}
-          <div className="flex flex-col gap-3 md:hidden">
+          {/* Vista móvil: tarjetas (oculta en PDF vía exportAdminPdf) */}
+          <div data-admin-pdf="mobile" className="flex flex-col gap-3 md:hidden">
             {rows.map((r) => {
               const est = normalizeEstado(r.estado);
               const aprobarBloqueado = est === REGISTRO_ESTADOS.pendiente_pago;

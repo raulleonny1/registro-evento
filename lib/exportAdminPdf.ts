@@ -151,6 +151,43 @@ function sanitizeCloneInlineColors(root: HTMLElement) {
 }
 
 /**
+ * En el panel de registros hay dos vistas (tabla escritorio + tarjetas móvil).
+ * Al quitar hojas de estilo, a veces ambas quedan visibles y se superponen en el PDF.
+ * Forzamos: solo tabla en PDF, tarjetas ocultas.
+ */
+function forceAdminPanelPdfLayout(clonedRoot: HTMLElement) {
+  const desktop = clonedRoot.querySelector('[data-admin-pdf="desktop"]');
+  const mobile = clonedRoot.querySelector('[data-admin-pdf="mobile"]');
+  if (desktop instanceof HTMLElement) {
+    desktop.style.setProperty("display", "block", "important");
+    desktop.style.setProperty("width", "100%", "important");
+    desktop.style.setProperty("overflow", "visible", "important");
+    desktop.style.setProperty("position", "relative", "important");
+    const scrollInner = desktop.querySelector(".overflow-x-auto");
+    if (scrollInner instanceof HTMLElement) {
+      scrollInner.style.setProperty("overflow", "visible", "important");
+      scrollInner.style.setProperty("width", "100%", "important");
+    }
+  }
+  if (mobile instanceof HTMLElement) {
+    mobile.style.setProperty("display", "none", "important");
+  }
+
+  clonedRoot.style.setProperty("position", "relative", "important");
+  clonedRoot.style.setProperty("width", "100%", "important");
+  clonedRoot.style.setProperty("max-width", "100%", "important");
+  clonedRoot.style.setProperty("overflow", "visible", "important");
+
+  const header = clonedRoot.querySelector("header");
+  if (header instanceof HTMLElement) {
+    header.style.setProperty("display", "block", "important");
+    header.style.setProperty("position", "relative", "important");
+    header.style.setProperty("width", "100%", "important");
+    header.style.setProperty("margin-bottom", "1.25rem", "important");
+  }
+}
+
+/**
  * Genera un PDF a partir de un nodo HTML (informes de administración).
  */
 export async function exportHtmlToPdf(element: HTMLElement, filename: string): Promise<void> {
@@ -175,6 +212,7 @@ export async function exportHtmlToPdf(element: HTMLElement, filename: string): P
         stripExternalStylesFromClone(clonedDoc);
         walkInlineStyles(element, clonedEl);
         sanitizeCloneInlineColors(clonedEl);
+        forceAdminPanelPdfLayout(clonedEl);
       },
     },
     jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const },
