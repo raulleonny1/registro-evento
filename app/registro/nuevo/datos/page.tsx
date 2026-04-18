@@ -1,13 +1,12 @@
 import Link from "next/link";
-import { RegistroNuevoPrivacidad } from "@/components/RegistroNuevoPrivacidad";
+import { RegistroForm } from "@/components/RegistroForm";
 
 export const metadata = {
-  title: "Información de datos — Nuevo registro — Encuentro IERE 2026",
-  description:
-    "Información sobre protección de datos antes de inscribirte al Encuentro Nacional de Mujeres IERE",
+  title: "Datos de registro — Encuentro IERE 2026",
+  description: "Inscripción al Encuentro Nacional de Mujeres IERE",
 };
 
-export default function RegistroNuevoPage() {
+export default function RegistroNuevoDatosPage() {
   return (
     <main className="relative min-h-[100dvh] overflow-x-hidden bg-gradient-to-b from-rose-50 via-white to-violet-50/60 text-zinc-900 dark:from-zinc-950 dark:via-zinc-950 dark:to-rose-950/30 dark:text-zinc-50">
       <div
@@ -18,10 +17,10 @@ export default function RegistroNuevoPage() {
       <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col px-4 pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
         <div className="sticky top-0 z-10 -mx-4 mb-2 flex justify-center bg-gradient-to-b from-rose-50/95 pb-2 pt-1 backdrop-blur-sm dark:from-zinc-950/95 sm:-mx-6 sm:static sm:mb-4 sm:bg-transparent sm:pb-0 sm:pt-0 sm:backdrop-blur-none">
           <Link
-            href="/registro"
+            href="/registro/nuevo"
             className="touch-manipulation inline-flex min-h-[44px] items-center justify-center rounded-full px-4 text-sm font-semibold text-rose-800 ring-1 ring-rose-200/80 transition active:scale-[0.98] dark:text-rose-300 dark:ring-rose-500/40"
           >
-            ← Registro
+            ← Aviso de datos
           </Link>
         </div>
 
@@ -39,24 +38,29 @@ export default function RegistroNuevoPage() {
             &ldquo;Cada Don, una Misión&rdquo;
           </p>
           <p className="mx-auto mt-3 max-w-sm text-pretty text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-            Antes de rellenar el formulario, lee cómo usaremos tus datos conforme al RGPD.
+            Completa tus datos. Después podrás subir el comprobante de pago cuando lo hayas realizado.
           </p>
         </header>
 
         <section
           className="rounded-2xl border border-zinc-200/80 bg-white/95 p-4 shadow-xl shadow-rose-900/5 backdrop-blur-md sm:p-7 dark:border-zinc-700/80 dark:bg-zinc-900/95 dark:shadow-black/40"
-          aria-labelledby="privacidad-heading"
+          aria-labelledby="registro-heading"
         >
-          <h2 id="privacidad-heading" className="text-lg font-semibold text-zinc-900 dark:text-white">
-            Antes de continuar
+          <h2 id="registro-heading" className="text-lg font-semibold text-zinc-900 dark:text-white">
+            Datos de registro
           </h2>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Marca la casilla para poder acceder al formulario de inscripción.
+            Todos los campos son obligatorios.
           </p>
           <div className="mt-5 sm:mt-6">
-            <RegistroNuevoPrivacidad />
+            <RegistroForm />
           </div>
         </section>
+
+        <p className="mt-6 max-w-prose text-center text-[0.7rem] leading-relaxed text-zinc-500 sm:mt-8 sm:text-xs dark:text-zinc-500">
+          Al enviar aceptas recibir comunicaciones relacionadas con este evento en el correo y el
+          WhatsApp indicados.
+        </p>
       </div>
     </main>
   );
