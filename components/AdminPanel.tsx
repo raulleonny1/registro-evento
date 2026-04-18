@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AdminReportExportToolbar } from "@/components/AdminReportExportToolbar";
 import { getFirestoreLazy } from "@/lib/firestoreClient";
 import { formatFirebaseError } from "@/lib/firebaseError";
 import { deleteComprobanteFiles } from "@/lib/deleteRegistroAssets";
@@ -14,7 +15,11 @@ import {
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
 import { etiquetaEstado, normalizeEstado, REGISTRO_ESTADOS } from "@/lib/registroEstados";
-import { parseAceptoDatosEvento, REGISTRO_ACEPTO_DATOS_EVENTO } from "@/lib/registroConsent";
+import {
+  labelAceptoDatosEvento,
+  parseAceptoDatosEvento,
+  REGISTRO_ACEPTO_DATOS_EVENTO,
+} from "@/lib/registroConsent";
 
 type Row = {
   id: string;
@@ -30,7 +35,25 @@ type Row = {
   aceptoDatosEvento: boolean | null;
 };
 
-function EstadoBadge({ estado }: { estado: string }) {
+function EstadoBadge({ estado, light }: { estado: string; light?: boolean }) {
+  const key = normalizeEstado(estado);
+  if (light) {
+    const styles: Record<string, string> = {
+      pendiente_pago: "border-amber-300 bg-amber-50 text-amber-900",
+      pendiente: "border-amber-300 bg-amber-50 text-amber-900",
+      revision: "border-sky-300 bg-sky-50 text-sky-900",
+      aprobado: "border-emerald-300 bg-emerald-50 text-emerald-900",
+      rechazado: "border-rose-300 bg-rose-50 text-rose-900",
+    };
+    const cls = styles[key] ?? styles[estado] ?? "border-zinc-300 bg-zinc-100 text-zinc-800";
+    return (
+      <span
+        className={`inline-flex shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold tracking-wide ${cls}`}
+      >
+        {etiquetaEstado(estado)}
+      </span>
+    );
+  }
   const styles: Record<string, string> = {
     pendiente_pago: "border-amber-400/40 bg-amber-500/15 text-amber-200",
     pendiente: "border-amber-400/40 bg-amber-500/15 text-amber-200",
@@ -38,7 +61,6 @@ function EstadoBadge({ estado }: { estado: string }) {
     aprobado: "border-emerald-400/40 bg-emerald-500/15 text-emerald-200",
     rechazado: "border-rose-400/40 bg-rose-500/15 text-rose-200",
   };
-  const key = normalizeEstado(estado);
   const cls = styles[key] ?? styles[estado] ?? "border-white/15 bg-white/10 text-zinc-300";
   return (
     <span
@@ -56,7 +78,7 @@ function AceptoDatosSelect({ value }: { value: boolean | null }) {
       disabled
       value={v}
       aria-label="Aceptó el aviso de datos para este evento"
-      className="max-w-[11rem] cursor-default rounded-lg border border-white/15 bg-zinc-900/80 py-1.5 pl-2 pr-7 text-xs font-medium text-zinc-200"
+      className="max-w-[11rem] cursor-default rounded-lg border border-zinc-300 bg-white py-1.5 pl-2 pr-7 text-xs font-medium text-zinc-800 dark:border-white/15 dark:bg-zinc-900/80 dark:text-zinc-200"
     >
       <option value="si">Sí, aceptó</option>
       <option value="no">No</option>
@@ -78,11 +100,13 @@ function isPdfUrl(url: string): boolean {
 }
 
 export default function AdminPanel() {
+  const reportRef = useRef<HTMLDivElement>(null);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Row | null>(null);
   const [previewTarget, setPreviewTarget] = useState<ComprobantePreview | null>(null);
+  const [generadoEn, setGeneradoEn] = useState("");
   const mapRows = useCallback((docs: Array<{ id: string; data: () => Record<string, unknown> }>): Row[] => {
     const list: Row[] = docs.map((d) => {
       const x = d.data();
@@ -145,6 +169,16 @@ export default function AdminPanel() {
       unsub?.();
     };
   }, [mapRows]);
+
+  useEffect(() => {
+    if (rows === null) return;
+    setGeneradoEn(
+      new Intl.DateTimeFormat("es-ES", {
+        dateStyle: "long",
+        timeStyle: "short",
+      }).format(new Date()),
+    );
+  }, [rows]);
 
   const load = useCallback(async () => {
     try {
@@ -246,18 +280,21 @@ export default function AdminPanel() {
       <div className="flex flex-col gap-6">
         {error && (
           <div
-            className="rounded-xl border border-rose-500/40 bg-rose-950/50 px-4 py-3 text-sm text-rose-100"
+            className="no-print rounded-xl border border-rose-500/40 bg-rose-950/50 px-4 py-3 text-sm text-rose-100"
             role="alert"
           >
             {error}
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-zinc-400">
-            <span className="font-semibold text-white">{rows.length}</span>{" "}
-            {rows.length === 1 ? "registro" : "registros"}
-          </p>
+        <div className="no-print flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <AdminReportExportToolbar reportRef={reportRef} filenameBase="registros-iere-2026" />
+            <p className="text-sm text-zinc-400">
+              <span className="font-semibold text-white">{rows.length}</span>{" "}
+              {rows.length === 1 ? "registro" : "registros"}
+            </p>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/admin/recaudacion"
@@ -275,256 +312,293 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        {/* Vista escritorio: tabla */}
-        <div className="hidden overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/40 backdrop-blur-sm md:block">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1180px] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-white/10 bg-white/[0.04]">
-                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Nombre
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Email
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    WhatsApp
-                  </th>
-                  <th className="min-w-[180px] px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Parroquia
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Modalidad
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Aviso datos
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Estado
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Pagado
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Pendiente
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Comprobante
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {rows.map((r) => {
-                  const est = normalizeEstado(r.estado);
-                  const aprobarBloqueado = est === REGISTRO_ESTADOS.pendiente_pago;
-                  return (
-                  <tr key={r.id} className="transition hover:bg-white/[0.04]">
-                    <td className="max-w-[160px] px-4 py-3 font-medium text-zinc-100">{r.nombre}</td>
-                    <td className="max-w-[200px] truncate px-4 py-3 text-zinc-300" title={r.email}>
-                      {r.email}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-zinc-400">{r.whatsapp || "—"}</td>
-                    <td className="max-w-[220px] px-4 py-3 text-xs leading-snug text-zinc-400">
-                      {r.parroquiaLabel}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-300">
-                      {etiquetaModalidadRegistro(r.modalidadRegistro)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <AceptoDatosSelect value={r.aceptoDatosEvento} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <EstadoBadge estado={r.estado} />
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 tabular-nums text-zinc-200">
-                      {formatEuros(r.montoDepositadoEuros)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 tabular-nums text-amber-200/90">
-                      {formatEuros(pendienteEuros(r.montoDepositadoEuros, r.modalidadRegistro))}
-                    </td>
-                    <td className="px-4 py-3">
-                      {r.comprobanteURL ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setPreviewTarget({
-                              url: r.comprobanteURL ?? "",
-                              nombre: r.nombre,
-                            })
-                          }
-                          className="font-medium text-rose-300 underline decoration-rose-500/50 underline-offset-2 hover:text-rose-200"
-                        >
-                          Ver archivo
-                        </button>
-                      ) : (
-                        <span className="text-zinc-600">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1.5">
-                        <button
-                          type="button"
-                          disabled={busyId === r.id || aprobarBloqueado}
-                          title={
-                            aprobarBloqueado
-                              ? "Primero debe subirse un comprobante (estado pendiente de pago)"
-                              : undefined
-                          }
-                          onClick={() => aprobar(r.id)}
-                          className={`${btnBase} bg-emerald-600/90 text-white shadow-lg shadow-emerald-900/20 hover:bg-emerald-500`}
-                        >
-                          Aprobar
-                        </button>
-                        <button
-                          type="button"
-                          disabled={busyId === r.id}
-                          onClick={() => rechazar(r.id)}
-                          className={`${btnBase} bg-amber-600/90 text-white shadow-lg shadow-amber-900/20 hover:bg-amber-500`}
-                        >
-                          Rechazar
-                        </button>
-                        <button
-                          type="button"
-                          disabled={busyId === r.id}
-                          onClick={() => setDeleteTarget(r)}
-                          className={`${btnBase} border border-rose-500/50 bg-rose-950/50 text-rose-200 hover:bg-rose-900/80`}
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <div
+          ref={reportRef}
+          className="admin-report-print-surface space-y-6 rounded-2xl border border-zinc-200 bg-white p-5 text-zinc-900 shadow-xl sm:p-8 dark:border-zinc-600 dark:bg-zinc-50"
+        >
+          <header className="border-b border-zinc-200 pb-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-700">
+              Informe
+            </p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
+              Gestión de registros
+            </h1>
+            <p className="mt-2 text-sm text-zinc-600">
+              Encuentro Nacional de Mujeres IERE · 25 al 27 de septiembre de 2026
+            </p>
+            <p className="mt-2 text-xs text-zinc-500">
+              Generado: <span className="font-medium text-zinc-700">{generadoEn}</span>
+            </p>
+            <p className="mt-2 text-sm font-medium text-zinc-800">
+              {rows.length} {rows.length === 1 ? "persona inscrita" : "personas inscritas"}
+            </p>
+          </header>
 
-        {/* Vista móvil: tarjetas */}
-        <div className="flex flex-col gap-3 md:hidden">
-          {rows.map((r) => {
-            const est = normalizeEstado(r.estado);
-            const aprobarBloqueado = est === REGISTRO_ESTADOS.pendiente_pago;
-            return (
-            <article
-              key={r.id}
-              className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-lg shadow-black/20"
-            >
-              <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-3">
-                <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug text-white">
-                  {r.nombre}
-                </h3>
-                <EstadoBadge estado={r.estado} />
-              </div>
-              <dl className="mt-3 space-y-2 text-sm">
-                <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  <div>
-                    <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+          {/* Vista escritorio: tabla */}
+          <div className="hidden overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1180px] border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-200 bg-zinc-50/90">
+                    <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+                      Nombre
+                    </th>
+                    <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+                      Email
+                    </th>
+                    <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+                      WhatsApp
+                    </th>
+                    <th className="min-w-[180px] px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+                      Parroquia
+                    </th>
+                    <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+                      Modalidad
+                    </th>
+                    <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+                      Aviso datos
+                    </th>
+                    <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+                      Estado
+                    </th>
+                    <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
                       Pagado
-                    </dt>
-                    <dd className="tabular-nums text-emerald-200/90">
-                      {formatEuros(r.montoDepositadoEuros)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                    </th>
+                    <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
                       Pendiente
-                    </dt>
-                    <dd className="tabular-nums text-amber-200/90">
-                      {formatEuros(pendienteEuros(r.montoDepositadoEuros, r.modalidadRegistro))}
-                    </dd>
-                  </div>
-                </div>
-                <div>
-                  <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
-                    Modalidad
-                  </dt>
-                  <dd className="text-zinc-300">{etiquetaModalidadRegistro(r.modalidadRegistro)}</dd>
-                </div>
-                <div>
-                  <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
-                    Aviso datos (RGPD)
-                  </dt>
-                  <dd className="mt-1">
-                    <AceptoDatosSelect value={r.aceptoDatosEvento} />
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
-                    Email
-                  </dt>
-                  <dd className="break-all text-zinc-300">{r.email}</dd>
-                </div>
-                <div>
-                  <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
-                    WhatsApp
-                  </dt>
-                  <dd className="text-zinc-300">{r.whatsapp || "—"}</dd>
-                </div>
-                <div>
-                  <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
-                    Parroquia
-                  </dt>
-                  <dd className="text-xs leading-snug text-zinc-400">{r.parroquiaLabel}</dd>
-                </div>
-              </dl>
-              {r.comprobanteURL && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setPreviewTarget({
-                      url: r.comprobanteURL ?? "",
-                      nombre: r.nombre,
-                    })
-                  }
-                  className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-950/30 px-3 py-2.5 text-sm font-medium text-rose-200 active:bg-rose-900/50"
-                >
-                  Ver comprobante
-                </button>
-              )}
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  disabled={busyId === r.id || aprobarBloqueado}
-                  title={
-                    aprobarBloqueado
-                      ? "Primero debe subirse un comprobante (estado pendiente de pago)"
-                      : undefined
-                  }
-                  onClick={() => aprobar(r.id)}
-                  className={`${btnBase} min-h-[48px] bg-emerald-600 text-white shadow-md hover:bg-emerald-500`}
-                >
-                  Aprobar
-                </button>
-                <button
-                  type="button"
-                  disabled={busyId === r.id}
-                  onClick={() => rechazar(r.id)}
-                  className={`${btnBase} min-h-[48px] bg-amber-600 text-white shadow-md hover:bg-amber-500`}
-                >
-                  Rechazar
-                </button>
-                <button
-                  type="button"
-                  disabled={busyId === r.id}
-                  onClick={() => setDeleteTarget(r)}
-                  className={`${btnBase} min-h-[48px] border border-rose-500/50 bg-rose-950/60 text-rose-100 hover:bg-rose-900/80`}
-                >
-                  Eliminar
-                </button>
-              </div>
-            </article>
-          );
-          })}
-        </div>
+                    </th>
+                    <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+                      Comprobante
+                    </th>
+                    <th className="no-print no-pdf whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-200">
+                  {rows.map((r) => {
+                    const est = normalizeEstado(r.estado);
+                    const aprobarBloqueado = est === REGISTRO_ESTADOS.pendiente_pago;
+                    return (
+                      <tr key={r.id} className="transition hover:bg-zinc-50/80">
+                        <td className="max-w-[160px] px-4 py-3 font-medium text-zinc-900">{r.nombre}</td>
+                        <td className="max-w-[200px] truncate px-4 py-3 text-zinc-700" title={r.email}>
+                          {r.email}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-zinc-700">{r.whatsapp || "—"}</td>
+                        <td className="max-w-[220px] px-4 py-3 text-xs leading-snug text-zinc-600">
+                          {r.parroquiaLabel}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-800">
+                          {etiquetaModalidadRegistro(r.modalidadRegistro)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-xs text-zinc-800">
+                              {labelAceptoDatosEvento(r.aceptoDatosEvento)}
+                            </span>
+                            <span className="no-pdf">
+                              <AceptoDatosSelect value={r.aceptoDatosEvento} />
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <EstadoBadge estado={r.estado} light />
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 tabular-nums text-zinc-900">
+                          {formatEuros(r.montoDepositadoEuros)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 tabular-nums text-amber-800">
+                          {formatEuros(pendienteEuros(r.montoDepositadoEuros, r.modalidadRegistro))}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {r.comprobanteURL ? (
+                            <span className="inline-flex flex-wrap items-center gap-2">
+                              <span className="text-zinc-800">Sí</span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewTarget({
+                                    url: r.comprobanteURL ?? "",
+                                    nombre: r.nombre,
+                                  })
+                                }
+                                className="no-pdf font-medium text-rose-600 underline decoration-rose-400/60 underline-offset-2 hover:text-rose-700"
+                              >
+                                Ver archivo
+                              </button>
+                            </span>
+                          ) : (
+                            <span className="text-zinc-500">—</span>
+                          )}
+                        </td>
+                        <td className="no-print no-pdf px-4 py-3">
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              disabled={busyId === r.id || aprobarBloqueado}
+                              title={
+                                aprobarBloqueado
+                                  ? "Primero debe subirse un comprobante (estado pendiente de pago)"
+                                  : undefined
+                              }
+                              onClick={() => aprobar(r.id)}
+                              className={`${btnBase} bg-emerald-600/90 text-white shadow-lg shadow-emerald-900/20 hover:bg-emerald-500`}
+                            >
+                              Aprobar
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busyId === r.id}
+                              onClick={() => rechazar(r.id)}
+                              className={`${btnBase} bg-amber-600/90 text-white shadow-lg shadow-amber-900/20 hover:bg-amber-500`}
+                            >
+                              Rechazar
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busyId === r.id}
+                              onClick={() => setDeleteTarget(r)}
+                              className={`${btnBase} border border-rose-500/50 bg-rose-950/50 text-rose-200 hover:bg-rose-900/80`}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-        {rows.length === 0 && (
-          <p className="text-center text-zinc-500">No hay registros todavía.</p>
-        )}
+          {/* Vista móvil: tarjetas */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {rows.map((r) => {
+              const est = normalizeEstado(r.estado);
+              const aprobarBloqueado = est === REGISTRO_ESTADOS.pendiente_pago;
+              return (
+                <article
+                  key={r.id}
+                  className="rounded-2xl border border-zinc-200 bg-zinc-50/90 p-4 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3 border-b border-zinc-200 pb-3">
+                    <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug text-zinc-900">
+                      {r.nombre}
+                    </h3>
+                    <EstadoBadge estado={r.estado} light />
+                  </div>
+                  <dl className="mt-3 space-y-2 text-sm">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      <div>
+                        <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                          Pagado
+                        </dt>
+                        <dd className="tabular-nums text-emerald-800">
+                          {formatEuros(r.montoDepositadoEuros)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                          Pendiente
+                        </dt>
+                        <dd className="tabular-nums text-amber-800">
+                          {formatEuros(pendienteEuros(r.montoDepositadoEuros, r.modalidadRegistro))}
+                        </dd>
+                      </div>
+                    </div>
+                    <div>
+                      <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                        Modalidad
+                      </dt>
+                      <dd className="text-zinc-800">{etiquetaModalidadRegistro(r.modalidadRegistro)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                        Aviso datos (RGPD)
+                      </dt>
+                      <dd className="mt-1 text-zinc-800">{labelAceptoDatosEvento(r.aceptoDatosEvento)}</dd>
+                      <dd className="no-pdf mt-1">
+                        <AceptoDatosSelect value={r.aceptoDatosEvento} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                        Email
+                      </dt>
+                      <dd className="break-all text-zinc-700">{r.email}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                        WhatsApp
+                      </dt>
+                      <dd className="text-zinc-700">{r.whatsapp || "—"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                        Parroquia
+                      </dt>
+                      <dd className="text-xs leading-snug text-zinc-600">{r.parroquiaLabel}</dd>
+                    </div>
+                  </dl>
+                  {r.comprobanteURL && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                      <span className="text-zinc-800">Comprobante: Sí</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPreviewTarget({
+                            url: r.comprobanteURL ?? "",
+                            nombre: r.nombre,
+                          })
+                        }
+                        className="no-pdf inline-flex touch-manipulation items-center gap-2 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 font-medium text-rose-800"
+                      >
+                        Ver comprobante
+                      </button>
+                    </div>
+                  )}
+                  <div className="no-pdf mt-4 grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      disabled={busyId === r.id || aprobarBloqueado}
+                      title={
+                        aprobarBloqueado
+                          ? "Primero debe subirse un comprobante (estado pendiente de pago)"
+                          : undefined
+                      }
+                      onClick={() => aprobar(r.id)}
+                      className={`${btnBase} min-h-[48px] bg-emerald-600 text-white shadow-md hover:bg-emerald-500`}
+                    >
+                      Aprobar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busyId === r.id}
+                      onClick={() => rechazar(r.id)}
+                      className={`${btnBase} min-h-[48px] bg-amber-600 text-white shadow-md hover:bg-amber-500`}
+                    >
+                      Rechazar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busyId === r.id}
+                      onClick={() => setDeleteTarget(r)}
+                      className={`${btnBase} min-h-[48px] border border-rose-500/50 bg-rose-950/60 text-rose-100 hover:bg-rose-900/80`}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          {rows.length === 0 && (
+            <p className="py-6 text-center text-sm text-zinc-500">No hay registros todavía.</p>
+          )}
+        </div>
       </div>
 
       {deleteTarget && (

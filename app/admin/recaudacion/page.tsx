@@ -9,11 +9,11 @@ export const metadata = {
 export default function AdminRecaudacionPage() {
   return (
     <AdminGate>
-      <div className="min-h-dvh bg-gradient-to-br from-slate-950 via-zinc-950 to-rose-950/30 text-zinc-100">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,rgba(225,29,72,0.12),transparent)]" />
+      <div className="min-h-dvh bg-gradient-to-br from-slate-950 via-zinc-950 to-rose-950/30 text-zinc-100 print:bg-white print:text-zinc-900">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,rgba(225,29,72,0.12),transparent)] no-print" />
 
         <main className="relative mx-auto max-w-7xl px-3 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] sm:px-6 lg:px-8">
-          <header className="mb-8 flex flex-col gap-5 border-b border-white/10 pb-6 sm:mb-10 sm:pb-8 lg:flex-row lg:items-end lg:justify-between">
+          <header className="no-print mb-8 flex flex-col gap-5 border-b border-white/10 pb-6 sm:mb-10 sm:pb-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-rose-400/90">
                 Administración

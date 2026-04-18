@@ -24,3 +24,16 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: #18181b !important;
+  }
+}

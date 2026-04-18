@@ -18,3 +18,10 @@ export function parseAceptoDatosEvento(raw: unknown): boolean | null {
   }
   return null;
 }
+
+/** Texto para informes impresos o PDF. */
+export function labelAceptoDatosEvento(v: boolean | null): string {
+  if (v === true) return "Sí, aceptó";
+  if (v === false) return "No";
+  return "No consta";
+}
