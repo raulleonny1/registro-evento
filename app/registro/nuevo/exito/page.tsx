@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+/** Cuenta para depósito o transferencia (mostrada tras inscribirse). */
+const CUENTA_DEPOSITO_IBAN = "ES03 0049 6791 7125 1602 4796";
+
 export const metadata = {
   title: "Registro recibido — Encuentro IERE 2026",
   description: "Tu inscripción se ha guardado. Sube el comprobante desde Continuar registro.",
@@ -30,11 +33,25 @@ export default async function RegistroExitoPage({
             Ya estás inscrita en el sistema
           </h1>
           <p className="mt-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-            Cuando hayas hecho el <strong>depósito o transferencia</strong>, vuelve a esta web y entra en{" "}
-            <strong>Continuar registro</strong>: podrás localizar tu ficha con los{" "}
+            Realiza el <strong>depósito o transferencia</strong> a la cuenta indicada abajo. Después vuelve a
+            esta web y entra en <strong>Continuar registro</strong>: podrás localizar tu ficha con los{" "}
             <strong>últimos 4 dígitos</strong> del teléfono que indicaste (o con tu ID de registro) y{" "}
             <strong>subir el comprobante</strong> (archivo o foto).
           </p>
+          <div className="mt-4 rounded-xl border border-emerald-300/80 bg-white px-4 py-3 dark:border-emerald-500/25 dark:bg-zinc-900/70">
+            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">
+              Cuenta para el pago
+            </p>
+            <p
+              className="mt-2 font-mono text-base font-semibold tracking-wide text-zinc-900 dark:text-white"
+              aria-label={`IBAN ${CUENTA_DEPOSITO_IBAN.replace(/\s/g, "")}`}
+            >
+              {CUENTA_DEPOSITO_IBAN}
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+              Indica en el concepto tu nombre y apellidos para identificar el pago.
+            </p>
+          </div>
           {id ? (
             <p className="mt-3 rounded-lg border border-emerald-200/80 bg-white/80 px-3 py-2 font-mono text-xs text-zinc-700 dark:border-emerald-500/20 dark:bg-zinc-900/60 dark:text-zinc-300">
               ID de registro: {id}
