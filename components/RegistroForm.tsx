@@ -2,15 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { formatFirebaseError } from "@/lib/firebaseError";
+import { getFirebaseConfigError } from "@/lib/firebaseEnv";
+import { guardarRegistro } from "@/lib/registroSubmit";
 import {
   areasIereEnOrden,
   iereParroquias,
   type IereParroquia,
 } from "@/lib/iereParroquias";
-import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
 import { soloDigitos, ultimosDigitos } from "@/lib/phoneDigits";
 import {
   MODALIDADES_REGISTRO,
@@ -19,31 +18,7 @@ import {
   etiquetaModalidadRegistro,
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
-import { REGISTRO_ACEPTO_DATOS_EVENTO, SESSION_RGPD_ACEPTO } from "@/lib/registroConsent";
-
-const SUBMIT_TIMEOUT_MS = 35_000;
-
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const t = setTimeout(() => {
-      reject(
-        new Error(
-          `${label} superó ${ms / 1000}s. Comprueba conexión, reglas de Firestore (colección registros) y que el proyecto tenga Firestore activado.`,
-        ),
-      );
-    }, ms);
-    promise.then(
-      (v) => {
-        clearTimeout(t);
-        resolve(v);
-      },
-      (e) => {
-        clearTimeout(t);
-        reject(e);
-      },
-    );
-  });
-}
+import { SESSION_RGPD_ACEPTO } from "@/lib/registroConsent";
 
 /* text-base (16px) evita zoom automático en focus en iOS Safari */
 const fieldClass =
@@ -208,6 +183,11 @@ export function RegistroForm() {
 
   const esOtra = parroquiaIdx === OTRA_PARROQUIA;
 
+  useEffect(() => {
+    const configErr = getFirebaseConfigError();
+    if (configErr) setError(configErr);
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -249,30 +229,28 @@ export function RegistroForm() {
       return;
     }
 
+    const configErr = getFirebaseConfigError();
+    if (configErr) {
+      setError(configErr);
+      return;
+    }
+
     setLoading(true);
     try {
       const whatsappUltimos4 = ultimosDigitos(wa, 4);
-      const ref = await withTimeout(
-        addDoc(collection(db, "registros"), {
-          nombre: nombreApellidos.trim(),
-          email: email.trim().toLowerCase(),
-          whatsapp: wa,
-          whatsappDigitos,
-          whatsappUltimos4,
-          parroquia: parroquiaPayload,
-          modalidadRegistro,
-          estado: REGISTRO_ESTADOS.pendiente_pago,
-          fecha: serverTimestamp(),
-          [REGISTRO_ACEPTO_DATOS_EVENTO]: true,
-          aceptoDatosEventoEn: serverTimestamp(),
-        }),
-        SUBMIT_TIMEOUT_MS,
-        "El registro",
-      );
+      const registroId = await guardarRegistro({
+        nombre: nombreApellidos.trim(),
+        email: email.trim().toLowerCase(),
+        whatsapp: wa,
+        whatsappDigitos,
+        whatsappUltimos4,
+        parroquia: parroquiaPayload,
+        modalidadRegistro,
+      });
       if (typeof window !== "undefined") {
         sessionStorage.removeItem(SESSION_RGPD_ACEPTO);
       }
-      await router.push(`/registro/nuevo/exito?id=${encodeURIComponent(ref.id)}`);
+      await router.push(`/registro/nuevo/exito?id=${encodeURIComponent(registroId)}`);
     } catch (err) {
       setError(formatFirebaseError(err));
     } finally {

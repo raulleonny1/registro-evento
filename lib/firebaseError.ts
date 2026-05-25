@@ -1,4 +1,5 @@
 import { FirebaseError } from "firebase/app";
+import { enrichRegistroError } from "@/lib/firebaseEnv";
 
 /** Mensaje legible para UI a partir de errores de Firebase. */
 export function formatFirebaseError(err: unknown): string {
@@ -16,7 +17,7 @@ export function formatFirebaseError(err: unknown): string {
     }
   }
   if (err instanceof Error) {
-    return err.message;
+    return enrichRegistroError(err.message);
   }
   return "Error desconocido al conectar con Firebase.";
 }

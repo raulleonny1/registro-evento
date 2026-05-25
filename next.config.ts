@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["cloudinary"],
+  serverExternalPackages: ["cloudinary", "firebase-admin"],
   transpilePackages: ["html2pdf.js"],
 };
 
