@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatFirebaseError } from "@/lib/firebaseError";
@@ -19,6 +20,12 @@ import {
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
 import { esMiembroComiteOrganizador } from "@/lib/comiteOrganizador";
+import {
+  mensajeRegistroDuplicado,
+  normalizarWhatsappDigitos,
+  verificarRegistroDuplicado,
+  type ResultadoDuplicado,
+} from "@/lib/registroDuplicados";
 import { ComiteOrganizadorAviso } from "@/components/ComiteOrganizadorAviso";
 import { SESSION_RGPD_ACEPTO } from "@/lib/registroConsent";
 
@@ -179,6 +186,7 @@ export function RegistroForm() {
     MODALIDADES_REGISTRO.completo_25_27,
   );
   const [error, setError] = useState<string | null>(null);
+  const [duplicado, setDuplicado] = useState<ResultadoDuplicado | null>(null);
   const [loading, setLoading] = useState(false);
 
   const areas = useMemo(() => areasIereEnOrden(), []);
@@ -198,6 +206,7 @@ export function RegistroForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setDuplicado(null);
 
     let parroquiaPayload: {
       area: string;
@@ -230,7 +239,8 @@ export function RegistroForm() {
     }
 
     const wa = whatsapp.trim();
-    const whatsappDigitos = soloDigitos(wa);
+    const emailNorm = email.trim().toLowerCase();
+    const whatsappDigitos = normalizarWhatsappDigitos(wa);
     if (whatsappDigitos.length < 4) {
       setError("El teléfono debe tener al menos 4 dígitos para poder localizar tu registro después.");
       return;
@@ -244,10 +254,17 @@ export function RegistroForm() {
 
     setLoading(true);
     try {
+      const dup = await verificarRegistroDuplicado(emailNorm, wa);
+      if (dup.duplicado) {
+        setDuplicado(dup);
+        setError(mensajeRegistroDuplicado(dup));
+        return;
+      }
+
       const whatsappUltimos4 = ultimosDigitos(wa, 4);
       const registroId = await guardarRegistro({
         nombre: nombreApellidos.trim(),
-        email: email.trim().toLowerCase(),
+        email: emailNorm,
         whatsapp: wa,
         whatsappDigitos,
         whatsappUltimos4,
@@ -454,12 +471,20 @@ export function RegistroForm() {
         </p>
       </div>
       {error && (
-        <p
+        <div
           className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-snug text-red-900 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-100"
           role="alert"
         >
-          {error}
-        </p>
+          <p>{error}</p>
+          {duplicado?.duplicado ? (
+            <Link
+              href="/registro/continuar"
+              className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-lg bg-rose-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-900 dark:bg-rose-700 dark:hover:bg-rose-600"
+            >
+              Ir a Continuar registro
+            </Link>
+          ) : null}
+        </div>
       )}
       <button
         type="submit"

@@ -28,6 +28,7 @@ const COMITE_MOVILES_CANONICOS = new Set([
   "34613995489",
   "34608441833",
   "34660007014",
+  "34605027296",
 ]);
 
 /** Normaliza a 34 + 9 dígitos si es un móvil español válido. */

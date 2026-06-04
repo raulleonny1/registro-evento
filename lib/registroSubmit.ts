@@ -8,6 +8,11 @@ import {
   datosComiteEnFirestore,
   esMiembroComiteOrganizador,
 } from "@/lib/comiteOrganizador";
+import {
+  mensajeRegistroDuplicado,
+  normalizarWhatsappDigitos,
+  verificarRegistroDuplicado,
+} from "@/lib/registroDuplicados";
 
 export type RegistroSubmitPayload = {
   nombre: string;
@@ -52,13 +57,17 @@ async function guardarPorCliente(payload: RegistroSubmitPayload): Promise<string
   const configErr = getFirebaseConfigError();
   if (configErr) throw new Error(configErr);
 
+  const dup = await verificarRegistroDuplicado(payload.email, payload.whatsapp);
+  if (dup.duplicado) throw new Error(mensajeRegistroDuplicado(dup));
+
+  const digitosNorm = normalizarWhatsappDigitos(payload.whatsapp);
   const comite = esMiembroComiteOrganizador(payload.whatsapp);
   const ref = await withTimeout(
     addDoc(collection(db, "registros"), {
       nombre: payload.nombre,
       email: payload.email,
       whatsapp: payload.whatsapp,
-      whatsappDigitos: payload.whatsappDigitos,
+      whatsappDigitos: digitosNorm,
       whatsappUltimos4: payload.whatsappUltimos4,
       parroquia: payload.parroquia,
       modalidadRegistro: payload.modalidadRegistro,
@@ -93,6 +102,9 @@ export async function guardarRegistro(payload: RegistroSubmitPayload): Promise<s
   }
 
   const data = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
+  if (res.status === 409) {
+    throw new Error(data.error || mensajeRegistroDuplicado({ duplicado: true, motivo: "email" }));
+  }
   if (!res.ok) {
     throw new Error(data.error || `Error del servidor (${res.status}).`);
   }

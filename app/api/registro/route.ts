@@ -5,6 +5,11 @@ import { REGISTRO_ACEPTO_DATOS_EVENTO } from "@/lib/registroConsent";
 import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
 import { MODALIDADES_REGISTRO, type ModalidadRegistro } from "@/lib/eventoPrecio";
 import { datosComiteEnFirestore, esMiembroComiteOrganizador } from "@/lib/comiteOrganizador";
+import { normalizarWhatsappDigitos } from "@/lib/registroDuplicados";
+import {
+  errorHttpRegistroDuplicado,
+  verificarRegistroDuplicadoAdmin,
+} from "@/lib/registroDuplicadosServer";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -73,14 +78,20 @@ export async function POST(request: NextRequest) {
   }
 
   const comite = esMiembroComiteOrganizador(whatsapp);
+  const whatsappDigitosNorm = normalizarWhatsappDigitos(whatsapp);
 
   try {
     const db = getAdminFirestore();
+    const dup = await verificarRegistroDuplicadoAdmin(db, email, whatsapp, whatsappDigitos);
+    if (dup.duplicado) {
+      return NextResponse.json({ error: errorHttpRegistroDuplicado(dup) }, { status: 409 });
+    }
+
     const ref = await db.collection("registros").add({
       nombre,
       email,
       whatsapp,
-      whatsappDigitos,
+      whatsappDigitos: whatsappDigitosNorm,
       whatsappUltimos4,
       parroquia: {
         area,
