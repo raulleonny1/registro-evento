@@ -4,6 +4,10 @@ import { getFirebaseConfigError } from "@/lib/firebaseEnv";
 import { REGISTRO_ACEPTO_DATOS_EVENTO } from "@/lib/registroConsent";
 import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
 import type { ModalidadRegistro } from "@/lib/eventoPrecio";
+import {
+  datosComiteEnFirestore,
+  esMiembroComiteOrganizador,
+} from "@/lib/comiteOrganizador";
 
 export type RegistroSubmitPayload = {
   nombre: string;
@@ -48,6 +52,7 @@ async function guardarPorCliente(payload: RegistroSubmitPayload): Promise<string
   const configErr = getFirebaseConfigError();
   if (configErr) throw new Error(configErr);
 
+  const comite = esMiembroComiteOrganizador(payload.whatsapp);
   const ref = await withTimeout(
     addDoc(collection(db, "registros"), {
       nombre: payload.nombre,
@@ -57,6 +62,7 @@ async function guardarPorCliente(payload: RegistroSubmitPayload): Promise<string
       whatsappUltimos4: payload.whatsappUltimos4,
       parroquia: payload.parroquia,
       modalidadRegistro: payload.modalidadRegistro,
+      ...(comite ? datosComiteEnFirestore() : {}),
       estado: REGISTRO_ESTADOS.pendiente_pago,
       fecha: serverTimestamp(),
       [REGISTRO_ACEPTO_DATOS_EVENTO]: true,

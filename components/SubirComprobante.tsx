@@ -7,14 +7,19 @@ import { db } from "@/lib/firebase";
 import { formatFirebaseError } from "@/lib/firebaseError";
 import {
   MINIMO_INSCRIPCION_EUR,
-  costoEventoEuros,
-  etiquetaModalidadRegistro,
+  costoInscripcionEuros,
+  etiquetaTarifaInscripcion,
   formatEuros,
   normalizeModalidadRegistro,
   parseMontoEuros,
   pendienteEuros,
+  type DatosTarifaRegistro,
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
+import {
+  REGISTRO_COMITE_ORGANIZADOR,
+  REGISTRO_PRECIO_INSCRIPCION_EUR,
+} from "@/lib/comiteOrganizador";
 import { iosDecimalMoneyInputProps } from "@/lib/iosKeyboardHints";
 import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
 
@@ -113,6 +118,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
   const [montoStr, setMontoStr] = useState("");
   const [depositadoActual, setDepositadoActual] = useState<number | null>(null);
   const [modalidadRegistro, setModalidadRegistro] = useState<ModalidadRegistro | null>(null);
+  const [tarifa, setTarifa] = useState<DatosTarifaRegistro | null>(null);
   const [loading, setLoading] = useState(false);
   const [progressPct, setProgressPct] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -126,9 +132,15 @@ export function SubirComprobante({ id, onUploaded }: Props) {
       try {
         const snap = await getDoc(doc(db, "registros", id));
         if (cancelled || !snap.exists()) return;
-        const n = Number(snap.data()?.montoDepositadoEuros ?? 0);
+        const x = snap.data() ?? {};
+        const n = Number(x.montoDepositadoEuros ?? 0);
         setDepositadoActual(Number.isFinite(n) ? n : 0);
-        setModalidadRegistro(normalizeModalidadRegistro(snap.data()?.modalidadRegistro));
+        setModalidadRegistro(normalizeModalidadRegistro(x.modalidadRegistro));
+        setTarifa({
+          modalidadRegistro: x.modalidadRegistro,
+          comiteOrganizador: x[REGISTRO_COMITE_ORGANIZADOR],
+          [REGISTRO_PRECIO_INSCRIPCION_EUR]: x[REGISTRO_PRECIO_INSCRIPCION_EUR],
+        });
       } catch {
         if (!cancelled) setDepositadoActual(null);
       }
@@ -168,11 +180,16 @@ export function SubirComprobante({ id, onUploaded }: Props) {
       setError("No se pudo leer tu registro. Revisa la conexión.");
       return;
     }
-    const preData = snapPre.data() as { montoDepositadoEuros?: unknown } | undefined;
-    const prev = Number(preData?.montoDepositadoEuros ?? 0);
+    const pre = (snapPre.data() ?? {}) as Record<string, unknown>;
+    const prev = Number(pre.montoDepositadoEuros ?? 0);
     const prevOk = Number.isFinite(prev) ? prev : 0;
-    const modalidad = normalizeModalidadRegistro((snapPre.data() as { modalidadRegistro?: unknown } | undefined)?.modalidadRegistro);
-    const pendiente = pendienteEuros(prevOk, modalidad);
+    const modalidad = normalizeModalidadRegistro(pre.modalidadRegistro);
+    const tarifaPre: DatosTarifaRegistro = {
+      modalidadRegistro: pre.modalidadRegistro,
+      comiteOrganizador: pre[REGISTRO_COMITE_ORGANIZADOR],
+      [REGISTRO_PRECIO_INSCRIPCION_EUR]: pre[REGISTRO_PRECIO_INSCRIPCION_EUR],
+    };
+    const pendiente = pendienteEuros(prevOk, tarifaPre);
     if (prevOk < 0.01 && monto + 0.001 < MINIMO_INSCRIPCION_EUR) {
       setError(`El primer depósito debe ser al menos ${formatEuros(MINIMO_INSCRIPCION_EUR)}.`);
       return;
@@ -211,6 +228,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
       const nuevo = prevOk + monto;
       setDepositadoActual(nuevo);
       setModalidadRegistro(modalidad);
+      setTarifa(tarifaPre);
       setProgressPct(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (cameraInputRef.current) cameraInputRef.current.value = "";
@@ -238,9 +256,10 @@ export function SubirComprobante({ id, onUploaded }: Props) {
     setProgressPct(null);
   }
 
+  const tarifaActiva: DatosTarifaRegistro = tarifa ?? { modalidadRegistro: modalidadRegistro };
   const pendiente =
-    depositadoActual != null ? pendienteEuros(depositadoActual, modalidadRegistro) : null;
-  const totalEntrada = costoEventoEuros(modalidadRegistro);
+    depositadoActual != null ? pendienteEuros(depositadoActual, tarifaActiva) : null;
+  const totalEntrada = costoInscripcionEuros(tarifaActiva);
 
   if (success) {
     return (
@@ -269,7 +288,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
     <form noValidate onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
       {depositadoActual != null && pendiente != null && (
         <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900/50 dark:text-zinc-200">
-          Opción: {etiquetaModalidadRegistro(modalidadRegistro)}. Total entrada:{" "}
+          {etiquetaTarifaInscripcion(tarifaActiva)}. Total inscripción:{" "}
           {formatEuros(totalEntrada)}. Llevas{" "}
           <span className="font-semibold">{formatEuros(depositadoActual)}</span> registrados.
           {pendiente > 0.01 ? (

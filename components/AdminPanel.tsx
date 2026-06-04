@@ -9,11 +9,18 @@ import { deleteComprobanteFiles } from "@/lib/deleteRegistroAssets";
 import { labelParroquiaFirestore } from "@/lib/iereParroquias";
 import {
   etiquetaModalidadRegistro,
+  etiquetaTarifaInscripcion,
   formatEuros,
   normalizeModalidadRegistro,
   pendienteEuros,
+  type DatosTarifaRegistro,
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
+import {
+  parseComiteOrganizador,
+  REGISTRO_COMITE_ORGANIZADOR,
+  REGISTRO_PRECIO_INSCRIPCION_EUR,
+} from "@/lib/comiteOrganizador";
 import { etiquetaEstado, normalizeEstado, REGISTRO_ESTADOS } from "@/lib/registroEstados";
 import {
   labelAceptoDatosEvento,
@@ -31,6 +38,8 @@ type Row = {
   comprobanteURL?: string;
   montoDepositadoEuros: number;
   modalidadRegistro: ModalidadRegistro;
+  tarifa: DatosTarifaRegistro;
+  comiteOrganizador: boolean;
   /** Consentimiento RGPD al inscribirse (nuevos registros). */
   aceptoDatosEvento: boolean | null;
 };
@@ -133,6 +142,12 @@ export default function AdminPanel() {
         comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
         montoDepositadoEuros: Number.isFinite(md) ? md : 0,
         modalidadRegistro: normalizeModalidadRegistro(x.modalidadRegistro),
+        tarifa: {
+          modalidadRegistro: x.modalidadRegistro,
+          comiteOrganizador: x[REGISTRO_COMITE_ORGANIZADOR],
+          [REGISTRO_PRECIO_INSCRIPCION_EUR]: x[REGISTRO_PRECIO_INSCRIPCION_EUR],
+        },
+        comiteOrganizador: parseComiteOrganizador(x[REGISTRO_COMITE_ORGANIZADOR]),
         aceptoDatosEvento,
       };
     });
@@ -393,7 +408,14 @@ export default function AdminPanel() {
                           {r.parroquiaLabel}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-800">
-                          {etiquetaModalidadRegistro(r.modalidadRegistro)}
+                          <span className="flex flex-col gap-0.5">
+                            {r.comiteOrganizador ? (
+                              <span className="inline-flex w-fit rounded-full border border-amber-300/80 bg-amber-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-amber-900">
+                                Comité
+                              </span>
+                            ) : null}
+                            <span>{etiquetaTarifaInscripcion(r.tarifa)}</span>
+                          </span>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-col gap-1">
@@ -412,7 +434,7 @@ export default function AdminPanel() {
                           {formatEuros(r.montoDepositadoEuros)}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 tabular-nums text-amber-800">
-                          {formatEuros(pendienteEuros(r.montoDepositadoEuros, r.modalidadRegistro))}
+                          {formatEuros(pendienteEuros(r.montoDepositadoEuros, r.tarifa))}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {r.comprobanteURL ? (
@@ -507,7 +529,7 @@ export default function AdminPanel() {
                           Pendiente
                         </dt>
                         <dd className="tabular-nums text-amber-800">
-                          {formatEuros(pendienteEuros(r.montoDepositadoEuros, r.modalidadRegistro))}
+                          {formatEuros(pendienteEuros(r.montoDepositadoEuros, r.tarifa))}
                         </dd>
                       </div>
                     </div>
@@ -515,7 +537,14 @@ export default function AdminPanel() {
                       <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
                         Modalidad
                       </dt>
-                      <dd className="text-zinc-800">{etiquetaModalidadRegistro(r.modalidadRegistro)}</dd>
+                      <dd className="text-zinc-800">
+                        {r.comiteOrganizador ? (
+                          <span className="mb-1 inline-flex rounded-full border border-amber-300/80 bg-amber-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase text-amber-900">
+                            Comité
+                          </span>
+                        ) : null}{" "}
+                        {etiquetaTarifaInscripcion(r.tarifa)}
+                      </dd>
                     </div>
                     <div>
                       <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">

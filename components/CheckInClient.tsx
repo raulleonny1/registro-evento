@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { db } from "@/lib/firebase";
 import {
   MINIMO_INSCRIPCION_EUR,
-  costoEventoEuros,
+  costoInscripcionEuros,
   etiquetaModalidadRegistro,
   formatEuros,
   normalizeModalidadRegistro,
@@ -13,6 +13,10 @@ import {
   pendienteEuros,
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
+import {
+  REGISTRO_COMITE_ORGANIZADOR,
+  REGISTRO_PRECIO_INSCRIPCION_EUR,
+} from "@/lib/comiteOrganizador";
 import { labelParroquiaFirestore } from "@/lib/iereParroquias";
 import type { Html5Qrcode } from "html5-qrcode";
 import { iosDecimalMoneyInputProps } from "@/lib/iosKeyboardHints";
@@ -165,6 +169,11 @@ export default function CheckInClient() {
           const montoDep = Number(d.montoDepositadoEuros ?? 0);
           const depOk = Number.isFinite(montoDep) ? montoDep : 0;
           const modalidad = normalizeModalidadRegistro(d.modalidadRegistro);
+          const tarifa = {
+            modalidadRegistro: d.modalidadRegistro,
+            [REGISTRO_COMITE_ORGANIZADOR]: d[REGISTRO_COMITE_ORGANIZADOR],
+            [REGISTRO_PRECIO_INSCRIPCION_EUR]: d[REGISTRO_PRECIO_INSCRIPCION_EUR],
+          };
           setResult({
             kind: "allow",
             registroId: id,
@@ -174,9 +183,9 @@ export default function CheckInClient() {
             parroquiaLine,
             estadoPago: estadoPagoLabel(estado),
             modalidadRegistro: modalidad,
-            totalEntradaEuros: costoEventoEuros(modalidad),
+            totalEntradaEuros: costoInscripcionEuros(tarifa),
             montoDepositadoEuros: depOk,
-            pendienteEuros: pendienteEuros(depOk, modalidad),
+            pendienteEuros: pendienteEuros(depOk, tarifa),
           });
         } else {
           playFeedback(false);
@@ -342,10 +351,16 @@ export default function CheckInClient() {
         setPuertaError("Registro no encontrado.");
         return;
       }
-      const prev = Number(snap.data()?.montoDepositadoEuros ?? 0);
+      const data = snap.data() ?? {};
+      const prev = Number(data.montoDepositadoEuros ?? 0);
       const prevOk = Number.isFinite(prev) ? prev : 0;
-      const modalidad = normalizeModalidadRegistro(snap.data()?.modalidadRegistro);
-      const pend = pendienteEuros(prevOk, modalidad);
+      const modalidad = normalizeModalidadRegistro(data.modalidadRegistro);
+      const tarifa = {
+        modalidadRegistro: data.modalidadRegistro,
+        [REGISTRO_COMITE_ORGANIZADOR]: data[REGISTRO_COMITE_ORGANIZADOR],
+        [REGISTRO_PRECIO_INSCRIPCION_EUR]: data[REGISTRO_PRECIO_INSCRIPCION_EUR],
+      };
+      const pend = pendienteEuros(prevOk, tarifa);
       if (prevOk < 0.01 && monto + 0.001 < MINIMO_INSCRIPCION_EUR) {
         setPuertaError(`El primer pago debe ser al menos ${formatEuros(MINIMO_INSCRIPCION_EUR)}.`);
         return;
@@ -365,9 +380,9 @@ export default function CheckInClient() {
       setResult({
         ...result,
         modalidadRegistro: modalidad,
-        totalEntradaEuros: costoEventoEuros(modalidad),
+        totalEntradaEuros: costoInscripcionEuros(tarifa),
         montoDepositadoEuros: nuevo,
-        pendienteEuros: pendienteEuros(nuevo, modalidad),
+        pendienteEuros: pendienteEuros(nuevo, tarifa),
       });
       setPuertaMonto("");
     } catch (e) {

@@ -4,6 +4,7 @@ import { getAdminFirestore, isFirebaseAdminConfigured } from "@/lib/firebaseAdmi
 import { REGISTRO_ACEPTO_DATOS_EVENTO } from "@/lib/registroConsent";
 import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
 import { MODALIDADES_REGISTRO, type ModalidadRegistro } from "@/lib/eventoPrecio";
+import { datosComiteEnFirestore, esMiembroComiteOrganizador } from "@/lib/comiteOrganizador";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -71,6 +72,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Modalidad de asistencia no válida." }, { status: 400 });
   }
 
+  const comite = esMiembroComiteOrganizador(whatsapp);
+
   try {
     const db = getAdminFirestore();
     const ref = await db.collection("registros").add({
@@ -86,6 +89,7 @@ export async function POST(request: NextRequest) {
         ...(par?.manual ? { manual: true } : {}),
       },
       modalidadRegistro: modalidad,
+      ...(comite ? datosComiteEnFirestore() : {}),
       estado: REGISTRO_ESTADOS.pendiente_pago,
       fecha: FieldValue.serverTimestamp(),
       [REGISTRO_ACEPTO_DATOS_EVENTO]: true,

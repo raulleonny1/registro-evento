@@ -15,9 +15,13 @@ import {
   MODALIDADES_REGISTRO,
   MINIMO_INSCRIPCION_EUR,
   costoEventoEuros,
+  costoInscripcionEuros,
   etiquetaModalidadRegistro,
+  formatEuros,
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
+import { esMiembroComiteOrganizador, PRECIO_COMITE_ORGANIZADOR_EUR } from "@/lib/comiteOrganizador";
+import { ComiteOrganizadorAviso } from "@/components/ComiteOrganizadorAviso";
 import { SESSION_RGPD_ACEPTO } from "@/lib/registroConsent";
 
 /* text-base (16px) evita zoom automático en focus en iOS Safari */
@@ -183,6 +187,11 @@ export function RegistroForm() {
 
   const esOtra = parroquiaIdx === OTRA_PARROQUIA;
 
+  const esComiteOrganizador = useMemo(
+    () => esMiembroComiteOrganizador(whatsapp),
+    [whatsapp],
+  );
+
   useEffect(() => {
     const configErr = getFirebaseConfigError();
     if (configErr) setError(configErr);
@@ -320,10 +329,18 @@ export function RegistroForm() {
           placeholder="Ej. +34 612 345 678"
           className={fieldClass}
         />
+        {esComiteOrganizador ? <ComiteOrganizadorAviso className="mt-4" /> : null}
       </div>
       <div className="space-y-2">
         <p className={labelClass}>Opciones de asistencia</p>
         <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
+          {esComiteOrganizador ? (
+            <p className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
+              Tu inscripción como comité es de{" "}
+              <strong>{formatEuros(PRECIO_COMITE_ORGANIZADOR_EUR)}</strong>, con independencia de los días que
+              elijas. Indica igualmente tu asistencia prevista.
+            </p>
+          ) : null}
           {(Object.values(MODALIDADES_REGISTRO) as ModalidadRegistro[]).map((opt) => {
             const selected = modalidadRegistro === opt;
             return (
@@ -348,14 +365,20 @@ export function RegistroForm() {
                     {etiquetaModalidadRegistro(opt)}
                   </span>
                   <span className="mt-0.5 block text-xs text-zinc-600 dark:text-zinc-400">
-                    Precio: {costoEventoEuros(opt)} EUR
+                    {esComiteOrganizador
+                      ? `Referencia asistencia · inscripción comité: ${formatEuros(PRECIO_COMITE_ORGANIZADOR_EUR)}`
+                      : `Precio: ${costoEventoEuros(opt)} EUR`}
                   </span>
                 </span>
               </label>
             );
           })}
           <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-            Para la inscripción se debe hacer una reserva de {MINIMO_INSCRIPCION_EUR} EUR. O su pago en totalidad.
+            {esComiteOrganizador
+              ? `Pago de inscripción: ${formatEuros(
+                  costoInscripcionEuros({ comiteOrganizador: true }),
+                )} (reserva de ${MINIMO_INSCRIPCION_EUR} EUR o importe completo).`
+              : `Para la inscripción se debe hacer una reserva de ${MINIMO_INSCRIPCION_EUR} EUR. O su pago en totalidad.`}
           </p>
         </div>
       </div>

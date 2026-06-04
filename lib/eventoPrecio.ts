@@ -9,7 +9,20 @@ export type ModalidadRegistro =
 /** Compatibilidad con registros antiguos sin modalidad guardada. */
 export const MODALIDAD_REGISTRO_DEFAULT: ModalidadRegistro = MODALIDADES_REGISTRO.completo_25_27;
 
+import {
+  PRECIO_COMITE_ORGANIZADOR_EUR,
+  parseComiteOrganizador,
+  REGISTRO_PRECIO_INSCRIPCION_EUR,
+} from "@/lib/comiteOrganizador";
+
 export const MINIMO_INSCRIPCION_EUR = 35;
+
+/** Datos de Firestore necesarios para calcular el importe de inscripción. */
+export type DatosTarifaRegistro = {
+  modalidadRegistro?: unknown;
+  comiteOrganizador?: unknown;
+  [REGISTRO_PRECIO_INSCRIPCION_EUR]?: unknown;
+};
 
 /** Precio legacy por defecto (equivale a la modalidad completa). */
 export const COSTO_EVENTO_EUR = 70;
@@ -27,6 +40,44 @@ export function costoEventoEuros(modalidad?: unknown): number {
   return COSTO_EVENTO_EUR;
 }
 
+function normalizeTarifaInput(
+  input: DatosTarifaRegistro | ModalidadRegistro | unknown,
+): DatosTarifaRegistro {
+  if (
+    input === MODALIDADES_REGISTRO.completo_25_27 ||
+    input === MODALIDADES_REGISTRO.sab_dom_26_27
+  ) {
+    return { modalidadRegistro: input };
+  }
+  if (typeof input === "object" && input !== null) {
+    return input as DatosTarifaRegistro;
+  }
+  return { modalidadRegistro: input };
+}
+
+/** Importe total de inscripción (comité 50 €; si no, según modalidad). */
+export function costoInscripcionEuros(
+  input: DatosTarifaRegistro | ModalidadRegistro | unknown,
+): number {
+  const data = normalizeTarifaInput(input);
+  if (parseComiteOrganizador(data.comiteOrganizador)) {
+    const p = data[REGISTRO_PRECIO_INSCRIPCION_EUR];
+    if (typeof p === "number" && Number.isFinite(p) && p > 0) return p;
+    return PRECIO_COMITE_ORGANIZADOR_EUR;
+  }
+  return costoEventoEuros(data.modalidadRegistro);
+}
+
+export function etiquetaTarifaInscripcion(
+  input: DatosTarifaRegistro | ModalidadRegistro | unknown,
+): string {
+  const data = normalizeTarifaInput(input);
+  if (parseComiteOrganizador(data.comiteOrganizador)) {
+    return `Comité organizador · ${formatEuros(costoInscripcionEuros(data))}`;
+  }
+  return etiquetaModalidadRegistro(data.modalidadRegistro);
+}
+
 export function etiquetaModalidadRegistro(modalidad?: unknown): string {
   const key = normalizeModalidadRegistro(modalidad);
   if (key === MODALIDADES_REGISTRO.sab_dom_26_27) {
@@ -35,15 +86,21 @@ export function etiquetaModalidadRegistro(modalidad?: unknown): string {
   return "Del 25 al 27";
 }
 
-export function clampDepositado(n: number, modalidad?: unknown): number {
+export function clampDepositado(
+  n: number,
+  tarifa?: DatosTarifaRegistro | ModalidadRegistro | unknown,
+): number {
   if (!Number.isFinite(n) || n < 0) return 0;
-  return Math.min(costoEventoEuros(modalidad), Math.round(n * 100) / 100);
+  return Math.min(costoInscripcionEuros(tarifa ?? {}), Math.round(n * 100) / 100);
 }
 
-/** Cuánto falta por pagar respecto al total del evento. */
-export function pendienteEuros(depositado: number | undefined, modalidad?: unknown): number {
-  const d = clampDepositado(depositado ?? 0, modalidad);
-  return Math.max(0, Math.round((costoEventoEuros(modalidad) - d) * 100) / 100);
+/** Cuánto falta por pagar respecto al total de inscripción. */
+export function pendienteEuros(
+  depositado: number | undefined,
+  tarifa?: DatosTarifaRegistro | ModalidadRegistro | unknown,
+): number {
+  const d = clampDepositado(depositado ?? 0, tarifa);
+  return Math.max(0, Math.round((costoInscripcionEuros(tarifa ?? {}) - d) * 100) / 100);
 }
 
 export function formatEuros(n: number): string {

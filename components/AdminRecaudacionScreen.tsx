@@ -9,7 +9,12 @@ import {
   formatEuros,
   normalizeModalidadRegistro,
   pendienteEuros,
+  type DatosTarifaRegistro,
 } from "@/lib/eventoPrecio";
+import {
+  REGISTRO_COMITE_ORGANIZADOR,
+  REGISTRO_PRECIO_INSCRIPCION_EUR,
+} from "@/lib/comiteOrganizador";
 
 type Deudor = {
   id: string;
@@ -51,16 +56,23 @@ export default function AdminRecaudacionScreen() {
           nombre?: unknown;
           montoDepositadoEuros?: unknown;
           modalidadRegistro?: unknown;
+          [REGISTRO_COMITE_ORGANIZADOR]?: unknown;
+          [REGISTRO_PRECIO_INSCRIPCION_EUR]?: unknown;
         };
         const md = Number(x.montoDepositadoEuros ?? 0);
         const m = Number.isFinite(md) ? md : 0;
         const modalidad = normalizeModalidadRegistro(x.modalidadRegistro);
+        const tarifa: DatosTarifaRegistro = {
+          modalidadRegistro: x.modalidadRegistro,
+          comiteOrganizador: x[REGISTRO_COMITE_ORGANIZADOR],
+          [REGISTRO_PRECIO_INSCRIPCION_EUR]: x[REGISTRO_PRECIO_INSCRIPCION_EUR],
+        };
         if (modalidad === MODALIDADES_REGISTRO.sab_dom_26_27) {
           inscritosSabadoDomingo += 1;
         } else {
           inscritosDesdeViernes += 1;
         }
-        const pend = pendienteEuros(m, modalidad);
+        const pend = pendienteEuros(m, tarifa);
         totalRecaudado += m;
         totalPendiente += pend;
         if (pend > 0.01) {

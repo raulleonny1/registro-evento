@@ -18,10 +18,13 @@ import {
   MODALIDADES_REGISTRO,
   MINIMO_INSCRIPCION_EUR,
   costoEventoEuros,
+  costoInscripcionEuros,
   etiquetaModalidadRegistro,
+  etiquetaTarifaInscripcion,
   formatEuros,
   normalizeModalidadRegistro,
   pendienteEuros,
+  type DatosTarifaRegistro,
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
 import {
@@ -32,6 +35,11 @@ import {
 } from "@/lib/registroEstados";
 import { iosDigitOnlyInputProps } from "@/lib/iosKeyboardHints";
 import { soloDigitos } from "@/lib/phoneDigits";
+import {
+  parseComiteOrganizador,
+  REGISTRO_COMITE_ORGANIZADOR,
+  REGISTRO_PRECIO_INSCRIPCION_EUR,
+} from "@/lib/comiteOrganizador";
 
 type Found = {
   id: string;
@@ -41,7 +49,16 @@ type Found = {
   comprobanteURL?: string;
   modalidadRegistro: ModalidadRegistro;
   montoDepositadoEuros: number;
+  tarifa: DatosTarifaRegistro;
 };
+
+function tarifaDesdeFirestore(x: Record<string, unknown>): DatosTarifaRegistro {
+  return {
+    modalidadRegistro: x.modalidadRegistro,
+    comiteOrganizador: x[REGISTRO_COMITE_ORGANIZADOR],
+    [REGISTRO_PRECIO_INSCRIPCION_EUR]: x[REGISTRO_PRECIO_INSCRIPCION_EUR],
+  };
+}
 
 export function ContinuarRegistro() {
   const [digitos, setDigitos] = useState("");
@@ -93,6 +110,7 @@ export function ContinuarRegistro() {
           comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
           modalidadRegistro: normalizeModalidadRegistro(x.modalidadRegistro),
           montoDepositadoEuros: Number(x.montoDepositadoEuros ?? 0) || 0,
+          tarifa: tarifaDesdeFirestore(x),
         };
       });
       list.sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -138,6 +156,7 @@ export function ContinuarRegistro() {
         comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
         modalidadRegistro: normalizeModalidadRegistro(x.modalidadRegistro),
         montoDepositadoEuros: Number(x.montoDepositadoEuros ?? 0) || 0,
+        tarifa: tarifaDesdeFirestore(x),
       };
       setResults([f]);
       setSelected(f);
@@ -162,6 +181,7 @@ export function ContinuarRegistro() {
         comprobanteURL: x.comprobanteURL ? String(x.comprobanteURL) : undefined,
         modalidadRegistro: normalizeModalidadRegistro(x.modalidadRegistro),
         montoDepositadoEuros: Number(x.montoDepositadoEuros ?? 0) || 0,
+        tarifa: tarifaDesdeFirestore(x),
       });
     } catch {
       /* ignorar */
@@ -177,9 +197,21 @@ export function ContinuarRegistro() {
       await updateDoc(doc(db, "registros", selected.id), {
         modalidadRegistro: next,
       });
-      setSelected((prev) => (prev ? { ...prev, modalidadRegistro: next } : prev));
+      setSelected((prev) =>
+        prev
+          ? {
+              ...prev,
+              modalidadRegistro: next,
+              tarifa: { ...prev.tarifa, modalidadRegistro: next },
+            }
+          : prev,
+      );
       setResults((prev) =>
-        prev?.map((item) => (item.id === selected.id ? { ...item, modalidadRegistro: next } : item)) ?? null,
+        prev?.map((item) =>
+          item.id === selected.id
+            ? { ...item, modalidadRegistro: next, tarifa: { ...item.tarifa, modalidadRegistro: next } }
+            : item,
+        ) ?? null,
       );
       setModalidadMsg("Opción de asistencia actualizada correctamente.");
     } catch (e) {
@@ -193,9 +225,11 @@ export function ContinuarRegistro() {
     selected &&
     (esPendientePago(selected.estado) ||
       normalizeEstado(selected.estado) === REGISTRO_ESTADOS.revision);
-  const totalSeleccionado = selected ? costoEventoEuros(selected.modalidadRegistro) : null;
+  const esComiteSeleccionada =
+    selected != null && parseComiteOrganizador(selected.tarifa.comiteOrganizador);
+  const totalSeleccionado = selected ? costoInscripcionEuros(selected.tarifa) : null;
   const pendienteSeleccionado = selected
-    ? pendienteEuros(selected.montoDepositadoEuros, selected.modalidadRegistro)
+    ? pendienteEuros(selected.montoDepositadoEuros, selected.tarifa)
     : null;
 
   const fieldClass =
@@ -322,6 +356,11 @@ export function ContinuarRegistro() {
               {etiquetaEstado(selected.estado)}
             </span>
           </p>
+          {esComiteSeleccionada ? (
+            <p className="mt-3 rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-2 text-xs leading-relaxed text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
+              Tarifa comité: <strong>{etiquetaTarifaInscripcion(selected.tarifa)}</strong>
+            </p>
+          ) : null}
           <div className="mt-4 rounded-xl border border-zinc-200/80 bg-white/80 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
             <p className="text-sm font-semibold text-zinc-900 dark:text-white">
               Opción elegida en el registro
@@ -351,7 +390,10 @@ export function ContinuarRegistro() {
                       className="mt-1 size-4 accent-rose-600"
                     />
                     <span className="text-sm text-zinc-800 dark:text-zinc-200">
-                      {etiquetaModalidadRegistro(opt)} ({costoEventoEuros(opt)} EUR)
+                      {etiquetaModalidadRegistro(opt)}
+                      {esComiteSeleccionada
+                        ? ""
+                        : ` (${costoEventoEuros(opt)} EUR)`}
                     </span>
                   </label>
                 );
