@@ -16,10 +16,9 @@ import {
   MINIMO_INSCRIPCION_EUR,
   costoEventoEuros,
   etiquetaModalidadRegistro,
-  formatEuros,
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
-import { esMiembroComiteOrganizador, PRECIO_COMITE_ORGANIZADOR_EUR } from "@/lib/comiteOrganizador";
+import { esMiembroComiteOrganizador } from "@/lib/comiteOrganizador";
 import { ComiteOrganizadorAviso } from "@/components/ComiteOrganizadorAviso";
 import { SESSION_RGPD_ACEPTO } from "@/lib/registroConsent";
 
@@ -331,12 +330,13 @@ export function RegistroForm() {
         {esComiteOrganizador ? <ComiteOrganizadorAviso className="mt-4" /> : null}
       </div>
       <div className="space-y-2">
-        <p className={labelClass}>Opciones de asistencia</p>
+        <p className={labelClass}>
+          {esComiteOrganizador ? "¿Qué días asistirás?" : "Opciones de asistencia"}
+        </p>
         <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
           {esComiteOrganizador ? (
-            <p className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
-              Formas parte del comité. Inscripción:{" "}
-              <strong>{formatEuros(PRECIO_COMITE_ORGANIZADOR_EUR)}</strong>. Indica tu asistencia prevista.
+            <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+              Elige los días a los que planeas acudir.
             </p>
           ) : null}
           {(Object.values(MODALIDADES_REGISTRO) as ModalidadRegistro[]).map((opt) => {
@@ -362,20 +362,21 @@ export function RegistroForm() {
                   <span className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                     {etiquetaModalidadRegistro(opt)}
                   </span>
-                  <span className="mt-0.5 block text-xs text-zinc-600 dark:text-zinc-400">
-                    {esComiteOrganizador
-                      ? `Referencia asistencia · inscripción comité: ${formatEuros(PRECIO_COMITE_ORGANIZADOR_EUR)}`
-                      : `Precio: ${costoEventoEuros(opt)} EUR`}
-                  </span>
+                  {!esComiteOrganizador ? (
+                    <span className="mt-0.5 block text-xs text-zinc-600 dark:text-zinc-400">
+                      Precio: {costoEventoEuros(opt)} EUR
+                    </span>
+                  ) : null}
                 </span>
               </label>
             );
           })}
-          <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-            {esComiteOrganizador
-              ? `Pago de inscripción: ${formatEuros(PRECIO_COMITE_ORGANIZADOR_EUR)} en un solo importe.`
-              : `Para la inscripción se debe hacer una reserva de ${MINIMO_INSCRIPCION_EUR} EUR. O su pago en totalidad.`}
-          </p>
+          {!esComiteOrganizador ? (
+            <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+              Para la inscripción se debe hacer una reserva de {MINIMO_INSCRIPCION_EUR} EUR. O su pago en
+              totalidad.
+            </p>
+          ) : null}
         </div>
       </div>
       <div className="space-y-2">
