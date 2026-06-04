@@ -335,9 +335,8 @@ export function RegistroForm() {
         <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
           {esComiteOrganizador ? (
             <p className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
-              Tu inscripción como integrante del comité es de{" "}
-              <strong>{formatEuros(PRECIO_COMITE_ORGANIZADOR_EUR)}</strong> (no organizas el evento; formas
-              parte del comité). Indica igualmente tu asistencia prevista.
+              Formas parte del comité. Inscripción:{" "}
+              <strong>{formatEuros(PRECIO_COMITE_ORGANIZADOR_EUR)}</strong>. Indica tu asistencia prevista.
             </p>
           ) : null}
           {(Object.values(MODALIDADES_REGISTRO) as ModalidadRegistro[]).map((opt) => {

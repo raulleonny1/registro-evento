@@ -47,19 +47,15 @@ export function ComiteOrganizadorAviso({ className = "" }: Props) {
             Un reconocimiento a tu servicio
           </p>
           <p className="mt-3 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-            Hemos identificado tu número como integrante del{" "}
-            <strong className="font-semibold text-zinc-900 dark:text-white">Comité</strong> del Encuentro.
-            Formas parte del comité de apoyo;{" "}
-            <span className="text-zinc-600 dark:text-zinc-400">no implica organizar el evento.</span> Tu
-            inscripción queda en{" "}
+            Formas parte del <strong className="font-semibold text-zinc-900 dark:text-white">Comité</strong> del
+            Encuentro. Tu inscripción es de{" "}
             <strong className="font-semibold text-rose-800 dark:text-rose-300">
               {formatEuros(PRECIO_COMITE_ORGANIZADOR_EUR)}
             </strong>
-            , en agradecimiento a tu dedicación.
+            .
           </p>
           <p className="mt-3 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-            El resto del proceso es el mismo que para todas las participantes: completa tus datos, realiza el
-            pago de {formatEuros(PRECIO_COMITE_ORGANIZADOR_EUR)} y, cuando lo tengas, sube el comprobante desde{" "}
+            Completa tus datos, realiza el pago y sube el comprobante desde{" "}
             <strong className="text-zinc-800 dark:text-zinc-200">Continuar registro</strong>.
           </p>
         </div>
