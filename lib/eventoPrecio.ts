@@ -73,7 +73,7 @@ export function etiquetaTarifaInscripcion(
 ): string {
   const data = normalizeTarifaInput(input);
   if (parseComiteOrganizador(data.comiteOrganizador)) {
-    return `Comité · ${formatEuros(costoInscripcionEuros(data))}`;
+    return `comité · ${formatEuros(costoInscripcionEuros(data))}`;
   }
   return etiquetaModalidadRegistro(data.modalidadRegistro);
 }

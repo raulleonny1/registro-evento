@@ -47,8 +47,7 @@ export function ComiteOrganizadorAviso({ className = "" }: Props) {
             Un reconocimiento a tu servicio
           </p>
           <p className="mt-3 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-            Formas parte del <strong className="font-semibold text-zinc-900 dark:text-white">Comité</strong> del
-            Encuentro. Tu inscripción es de{" "}
+            Formas parte del comité. Tu inscripción es de{" "}
             <strong className="font-semibold text-rose-800 dark:text-rose-300">
               {formatEuros(PRECIO_COMITE_ORGANIZADOR_EUR)}
             </strong>
