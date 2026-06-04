@@ -6,8 +6,8 @@ import { doc, getDoc, increment, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatFirebaseError } from "@/lib/firebaseError";
 import {
-  MINIMO_INSCRIPCION_EUR,
   costoInscripcionEuros,
+  minimoPrimerDepositoEuros,
   etiquetaTarifaInscripcion,
   formatEuros,
   normalizeModalidadRegistro,
@@ -17,6 +17,7 @@ import {
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
 import {
+  parseComiteOrganizador,
   REGISTRO_COMITE_ORGANIZADOR,
   REGISTRO_PRECIO_INSCRIPCION_EUR,
 } from "@/lib/comiteOrganizador";
@@ -190,8 +191,9 @@ export function SubirComprobante({ id, onUploaded }: Props) {
       [REGISTRO_PRECIO_INSCRIPCION_EUR]: pre[REGISTRO_PRECIO_INSCRIPCION_EUR],
     };
     const pendiente = pendienteEuros(prevOk, tarifaPre);
-    if (prevOk < 0.01 && monto + 0.001 < MINIMO_INSCRIPCION_EUR) {
-      setError(`El primer depósito debe ser al menos ${formatEuros(MINIMO_INSCRIPCION_EUR)}.`);
+    const minimoPrimero = minimoPrimerDepositoEuros(tarifaPre);
+    if (prevOk < 0.01 && monto + 0.001 < minimoPrimero) {
+      setError(`El primer depósito debe ser al menos ${formatEuros(minimoPrimero)}.`);
       return;
     }
     if (monto > pendiente + 0.001) {
@@ -303,7 +305,9 @@ export function SubirComprobante({ id, onUploaded }: Props) {
             </span>
           )}
           <span className="mt-1 block text-xs text-zinc-600 dark:text-zinc-400">
-            Mínimo de inscripción: {formatEuros(MINIMO_INSCRIPCION_EUR)}.
+            {parseComiteOrganizador(tarifaActiva.comiteOrganizador)
+              ? `Inscripción comité: ${formatEuros(totalEntrada)} (importe completo).`
+              : `Mínimo de inscripción: ${formatEuros(minimoPrimerDepositoEuros(tarifaActiva))}.`}
           </span>
         </p>
       )}

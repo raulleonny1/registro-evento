@@ -73,9 +73,20 @@ export function etiquetaTarifaInscripcion(
 ): string {
   const data = normalizeTarifaInput(input);
   if (parseComiteOrganizador(data.comiteOrganizador)) {
-    return `Comité organizador · ${formatEuros(costoInscripcionEuros(data))}`;
+    return `Comité · ${formatEuros(costoInscripcionEuros(data))}`;
   }
   return etiquetaModalidadRegistro(data.modalidadRegistro);
+}
+
+/** Primer depósito mínimo: comité paga el importe completo (50 €); resto, reserva de 35 €. */
+export function minimoPrimerDepositoEuros(
+  tarifa: DatosTarifaRegistro | ModalidadRegistro | unknown,
+): number {
+  const data = normalizeTarifaInput(tarifa);
+  if (parseComiteOrganizador(data.comiteOrganizador)) {
+    return costoInscripcionEuros(data);
+  }
+  return MINIMO_INSCRIPCION_EUR;
 }
 
 export function etiquetaModalidadRegistro(modalidad?: unknown): string {

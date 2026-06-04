@@ -4,8 +4,8 @@ import { doc, getDoc, increment, updateDoc } from "firebase/firestore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { db } from "@/lib/firebase";
 import {
-  MINIMO_INSCRIPCION_EUR,
   costoInscripcionEuros,
+  minimoPrimerDepositoEuros,
   etiquetaModalidadRegistro,
   formatEuros,
   normalizeModalidadRegistro,
@@ -361,8 +361,9 @@ export default function CheckInClient() {
         [REGISTRO_PRECIO_INSCRIPCION_EUR]: data[REGISTRO_PRECIO_INSCRIPCION_EUR],
       };
       const pend = pendienteEuros(prevOk, tarifa);
-      if (prevOk < 0.01 && monto + 0.001 < MINIMO_INSCRIPCION_EUR) {
-        setPuertaError(`El primer pago debe ser al menos ${formatEuros(MINIMO_INSCRIPCION_EUR)}.`);
+      const minimoPrimero = minimoPrimerDepositoEuros(tarifa);
+      if (prevOk < 0.01 && monto + 0.001 < minimoPrimero) {
+        setPuertaError(`El primer pago debe ser al menos ${formatEuros(minimoPrimero)}.`);
         return;
       }
       if (monto > pend + 0.001) {

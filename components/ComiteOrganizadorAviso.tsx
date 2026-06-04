@@ -1,13 +1,11 @@
-import { formatEuros, MINIMO_INSCRIPCION_EUR } from "@/lib/eventoPrecio";
+import { formatEuros } from "@/lib/eventoPrecio";
 import { PRECIO_COMITE_ORGANIZADOR_EUR } from "@/lib/comiteOrganizador";
 
 type Props = {
   className?: string;
 };
 
-/**
- * Aviso al detectar el móvil de una miembro del comité organizador.
- */
+/** Aviso al detectar el móvil de una miembro del comité (tarifa 50 €). */
 export function ComiteOrganizadorAviso({ className = "" }: Props) {
   return (
     <div
@@ -43,25 +41,26 @@ export function ComiteOrganizadorAviso({ className = "" }: Props) {
 
         <div className="min-w-0 flex-1">
           <p className="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-amber-800/90 dark:text-amber-300/90">
-            Comité organizador
+            Comité
           </p>
           <p className="mt-1 font-serif text-lg font-semibold leading-snug text-zinc-900 dark:text-zinc-50">
             Un reconocimiento a tu servicio
           </p>
           <p className="mt-3 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-            Hemos identificado tu número como miembro del{" "}
-            <strong className="font-semibold text-zinc-900 dark:text-white">Comité Organizador</strong> del
-            Encuentro. Tu inscripción queda establecida en{" "}
+            Hemos identificado tu número como integrante del{" "}
+            <strong className="font-semibold text-zinc-900 dark:text-white">Comité</strong> del Encuentro.
+            Formas parte del comité de apoyo;{" "}
+            <span className="text-zinc-600 dark:text-zinc-400">no implica organizar el evento.</span> Tu
+            inscripción queda en{" "}
             <strong className="font-semibold text-rose-800 dark:text-rose-300">
               {formatEuros(PRECIO_COMITE_ORGANIZADOR_EUR)}
             </strong>
-            , en agradecimiento a la labor que realizas al frente de este evento.
+            , en agradecimiento a tu dedicación.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
             El resto del proceso es el mismo que para todas las participantes: completa tus datos, realiza el
-            pago y, cuando lo tengas, sube el comprobante desde{" "}
-            <strong className="text-zinc-800 dark:text-zinc-200">Continuar registro</strong>. Puedes abonar la
-            reserva de {MINIMO_INSCRIPCION_EUR} EUR o el importe completo.
+            pago de {formatEuros(PRECIO_COMITE_ORGANIZADOR_EUR)} y, cuando lo tengas, sube el comprobante desde{" "}
+            <strong className="text-zinc-800 dark:text-zinc-200">Continuar registro</strong>.
           </p>
         </div>
       </div>

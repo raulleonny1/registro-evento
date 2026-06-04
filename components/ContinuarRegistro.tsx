@@ -400,7 +400,9 @@ export function ContinuarRegistro() {
               })}
             </div>
             <p className="mt-3 text-xs text-zinc-600 dark:text-zinc-400">
-              Mínimo de inscripción: {MINIMO_INSCRIPCION_EUR} EUR.
+              {esComiteSeleccionada
+                ? `Inscripción comité: ${formatEuros(costoInscripcionEuros(selected.tarifa))} (importe completo).`
+                : `Mínimo de inscripción: ${MINIMO_INSCRIPCION_EUR} EUR.`}
             </p>
             {totalSeleccionado != null && pendienteSeleccionado != null && (
               <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-300">

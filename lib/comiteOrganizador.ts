@@ -1,6 +1,6 @@
 import { soloDigitos } from "@/lib/phoneDigits";
 
-/** Campo en Firestore: miembro del comité organizador (tarifa especial). */
+/** Campo en Firestore: integrante del comité (tarifa especial 50 €). */
 export const REGISTRO_COMITE_ORGANIZADOR = "comiteOrganizador" as const;
 
 /** Importe fijo de inscripción para el comité (EUR). */
