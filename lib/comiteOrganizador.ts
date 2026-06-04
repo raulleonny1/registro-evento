@@ -66,3 +66,13 @@ export function datosComiteEnFirestore(): {
     [REGISTRO_PRECIO_INSCRIPCION_EUR]: PRECIO_COMITE_ORGANIZADOR_EUR,
   };
 }
+
+/** Campos al quitar la marca de comité (el precio especial se borra en updateDoc con deleteField). */
+export function patchDesmarcarComite(): { [REGISTRO_COMITE_ORGANIZADOR]: false } {
+  return { [REGISTRO_COMITE_ORGANIZADOR]: false };
+}
+
+/** Cuántos móviles hay en la lista del comité (para mensajes en admin). */
+export function totalMovilesComiteEnLista(): number {
+  return COMITE_MOVILES_CANONICOS.size;
+}

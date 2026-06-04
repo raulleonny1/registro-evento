@@ -17,9 +17,12 @@ import {
   type ModalidadRegistro,
 } from "@/lib/eventoPrecio";
 import {
-  parseComiteOrganizador,
+  datosComiteEnFirestore,
+  esMiembroComiteOrganizador,
+  patchDesmarcarComite,
   REGISTRO_COMITE_ORGANIZADOR,
   REGISTRO_PRECIO_INSCRIPCION_EUR,
+  totalMovilesComiteEnLista,
 } from "@/lib/comiteOrganizador";
 import { etiquetaEstado, normalizeEstado, REGISTRO_ESTADOS } from "@/lib/registroEstados";
 import {
@@ -80,6 +83,39 @@ function EstadoBadge({ estado, light }: { estado: string; light?: boolean }) {
   );
 }
 
+function ComiteSelect({
+  registroId,
+  esComite,
+  whatsapp,
+  busy,
+  onChange,
+}: {
+  registroId: string;
+  esComite: boolean;
+  whatsapp: string;
+  busy: boolean;
+  onChange: (id: string, marcar: boolean) => void;
+}) {
+  const enLista = esMiembroComiteOrganizador(whatsapp);
+  return (
+    <div className="flex flex-col gap-1">
+      <select
+        value={esComite ? "si" : "no"}
+        disabled={busy}
+        aria-label={`Comité — ${registroId}`}
+        onChange={(e) => onChange(registroId, e.target.value === "si")}
+        className="max-w-[9rem] cursor-pointer rounded-lg border border-zinc-300 bg-white py-1.5 pl-2 pr-7 text-xs font-medium text-zinc-800 disabled:opacity-50 dark:border-white/15 dark:bg-zinc-900/80 dark:text-zinc-200"
+      >
+        <option value="si">Sí, comité</option>
+        <option value="no">No</option>
+      </select>
+      {enLista && !esComite ? (
+        <span className="text-[0.65rem] text-amber-700 dark:text-amber-300">Tel. en lista</span>
+      ) : null}
+    </div>
+  );
+}
+
 function AceptoDatosSelect({ value }: { value: boolean | null }) {
   const v = value === true ? "si" : value === false ? "no" : "no_consta";
   return (
@@ -116,6 +152,7 @@ export default function AdminPanel() {
   const [deleteTarget, setDeleteTarget] = useState<Row | null>(null);
   const [previewTarget, setPreviewTarget] = useState<ComprobantePreview | null>(null);
   const [generadoEn, setGeneradoEn] = useState("");
+  const [comiteMsg, setComiteMsg] = useState<string | null>(null);
   const mapRows = useCallback((docs: Array<{ id: string; data: () => Record<string, unknown> }>): Row[] => {
     const list: Row[] = docs.map((d) => {
       const x = d.data();
@@ -147,7 +184,7 @@ export default function AdminPanel() {
           comiteOrganizador: x[REGISTRO_COMITE_ORGANIZADOR],
           [REGISTRO_PRECIO_INSCRIPCION_EUR]: x[REGISTRO_PRECIO_INSCRIPCION_EUR],
         },
-        comiteOrganizador: parseComiteOrganizador(x[REGISTRO_COMITE_ORGANIZADOR]),
+        comiteOrganizador: x[REGISTRO_COMITE_ORGANIZADOR] === true,
         aceptoDatosEvento,
       };
     });
@@ -242,6 +279,56 @@ export default function AdminPanel() {
     }
   }
 
+  async function setComiteRegistro(registroId: string, marcar: boolean) {
+    setBusyId(registroId);
+    setError(null);
+    setComiteMsg(null);
+    try {
+      const { fs, db } = await getFirestoreLazy();
+      const { doc, updateDoc, deleteField } = fs;
+      if (marcar) {
+        await updateDoc(doc(db, "registros", registroId), datosComiteEnFirestore());
+      } else {
+        await updateDoc(doc(db, "registros", registroId), {
+          ...patchDesmarcarComite(),
+          [REGISTRO_PRECIO_INSCRIPCION_EUR]: deleteField(),
+        });
+      }
+      await load();
+    } catch (e) {
+      setError(formatFirebaseError(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function sincronizarComitePorTelefono() {
+    if (!rows?.length) return;
+    setBusyId("__sync-comite__");
+    setError(null);
+    setComiteMsg(null);
+    try {
+      const { fs, db } = await getFirestoreLazy();
+      const { doc, updateDoc } = fs;
+      let marcados = 0;
+      for (const r of rows) {
+        if (!esMiembroComiteOrganizador(r.whatsapp) || r.comiteOrganizador) continue;
+        await updateDoc(doc(db, "registros", r.id), datosComiteEnFirestore());
+        marcados += 1;
+      }
+      await load();
+      setComiteMsg(
+        marcados > 0
+          ? `Se marcaron ${marcados} registro(s) como comité (tarifa 50 €).`
+          : "No había registros pendientes: los teléfonos de la lista ya están marcados o no coinciden.",
+      );
+    } catch (e) {
+      setError(formatFirebaseError(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function confirmarEliminar() {
     if (!deleteTarget) return;
     const id = deleteTarget.id;
@@ -319,6 +406,15 @@ export default function AdminPanel() {
             </Link>
             <button
               type="button"
+              disabled={busyId === "__sync-comite__"}
+              onClick={() => void sincronizarComitePorTelefono()}
+              title={`Marca como comité los registros cuyo WhatsApp coincide con la lista (${totalMovilesComiteEnLista()} números)`}
+              className="touch-manipulation rounded-xl border border-amber-500/40 bg-amber-600/20 px-4 py-3 text-sm font-semibold text-amber-100 transition hover:bg-amber-600/30 active:scale-[0.98] disabled:opacity-50 sm:py-2"
+            >
+              {busyId === "__sync-comite__" ? "Marcando…" : "Marcar comité por teléfono"}
+            </button>
+            <button
+              type="button"
               onClick={() => void load()}
               className="touch-manipulation rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-zinc-200 transition hover:bg-white/10 active:scale-[0.98] sm:py-2"
             >
@@ -326,6 +422,15 @@ export default function AdminPanel() {
             </button>
           </div>
         </div>
+
+        {comiteMsg ? (
+          <p
+            className="no-print rounded-xl border border-emerald-500/35 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-100"
+            role="status"
+          >
+            {comiteMsg}
+          </p>
+        ) : null}
 
         <div
           ref={reportRef}
@@ -373,6 +478,9 @@ export default function AdminPanel() {
                     <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
                       Modalidad
                     </th>
+                    <th className="no-print no-pdf whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+                      Comité
+                    </th>
                     <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
                       Aviso datos
                     </th>
@@ -416,6 +524,15 @@ export default function AdminPanel() {
                             ) : null}
                             <span>{etiquetaTarifaInscripcion(r.tarifa)}</span>
                           </span>
+                        </td>
+                        <td className="no-print no-pdf px-4 py-3">
+                          <ComiteSelect
+                            registroId={r.id}
+                            esComite={r.comiteOrganizador}
+                            whatsapp={r.whatsapp}
+                            busy={busyId === r.id}
+                            onChange={(id, marcar) => void setComiteRegistro(id, marcar)}
+                          />
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-col gap-1">
@@ -544,6 +661,20 @@ export default function AdminPanel() {
                           </span>
                         ) : null}{" "}
                         {etiquetaTarifaInscripcion(r.tarifa)}
+                      </dd>
+                    </div>
+                    <div className="no-pdf">
+                      <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                        Comité (50 €)
+                      </dt>
+                      <dd className="mt-1">
+                        <ComiteSelect
+                          registroId={r.id}
+                          esComite={r.comiteOrganizador}
+                          whatsapp={r.whatsapp}
+                          busy={busyId === r.id}
+                          onChange={(id, marcar) => void setComiteRegistro(id, marcar)}
+                        />
                       </dd>
                     </div>
                     <div>
