@@ -10,6 +10,8 @@ import {
   errorHttpRegistroDuplicado,
   verificarRegistroDuplicadoAdmin,
 } from "@/lib/registroDuplicadosServer";
+import { enviarConfirmacionRegistroEmail } from "@/lib/enviarConfirmacionRegistroEmail";
+import { isResendConfigured } from "@/lib/resendMail";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -106,6 +108,19 @@ export async function POST(request: NextRequest) {
       [REGISTRO_ACEPTO_DATOS_EVENTO]: true,
       aceptoDatosEventoEn: FieldValue.serverTimestamp(),
     });
+
+    if (isResendConfigured()) {
+      void enviarConfirmacionRegistroEmail({
+        registroId: ref.id,
+        nombre,
+        email,
+        modalidadRegistro: modalidad,
+        comite,
+      }).catch((err) => {
+        console.error("[api/registro] confirmacion email", err);
+      });
+    }
+
     return NextResponse.json({ id: ref.id });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Error al guardar en Firestore.";

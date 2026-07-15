@@ -4,7 +4,7 @@ import {
   CUENTA_DEPOSITO_TITULAR_HINT,
 } from "@/lib/cuentaDeposito";
 import { getAppBaseUrl } from "@/lib/resendMail";
-import { etiquetaFase, type FaseRecordatorio } from "@/lib/recordatorioFrecuencia";
+import { etiquetaFase, faseRecordatorio, type FaseRecordatorio } from "@/lib/recordatorioFrecuencia";
 
 function escapeHtml(s: string): string {
   return s
@@ -210,6 +210,135 @@ export function emailRecordatorioDeposito(opts: {
         ? "Último aviso: depósito pendiente antes del Encuentro IERE 2026."
         : "Tu inscripción aún no tiene depósito. Te indicamos la cuenta y los pasos.",
       title: esUltimo ? "Último recordatorio de depósito" : "Depósito pendiente de tu inscripción",
+      bodyHtml,
+    }),
+    text,
+  };
+}
+
+export function emailConfirmacionRegistro(opts: {
+  nombre: string;
+  registroId: string;
+  etiquetaTarifa: string;
+  importeTotal: string;
+  minimoDeposito: string;
+}): { subject: string; html: string; text: string } {
+  const base = getAppBaseUrl();
+  const continuarUrl = `${base}/registro/continuar`;
+  const estadoUrl = `${base}/estado/${encodeURIComponent(opts.registroId)}`;
+  const nombre = opts.nombre.trim() || "hermana";
+  const frecuenciaTxt = etiquetaFase(faseRecordatorio());
+
+  const subject = "Inscripción recibida — Encuentro IERE 2026 (25–27 sept)";
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65;color:#44403c;">
+      Estimada <strong style="color:#1c1917;">${escapeHtml(nombre)}</strong>,
+    </p>
+    <p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65;color:#44403c;">
+      Tu inscripción al <strong style="color:#1c1917;">Encuentro Nacional de Mujeres IERE 2026</strong>
+      (del <strong>25 al 27 de septiembre de 2026</strong>) se ha guardado correctamente en el sistema.
+    </p>
+    <p style="margin:0 0 18px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65;color:#44403c;">
+      El siguiente paso es realizar el <strong>depósito o transferencia</strong> y subir el comprobante en la web.
+    </p>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;">
+      <tr>
+        <td style="padding:14px 16px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#166534;">
+          <strong>Tu inscripción</strong><br />
+          ${escapeHtml(opts.etiquetaTarifa)} · importe total <strong>${escapeHtml(opts.importeTotal)}</strong><br />
+          Reserva mínima para el primer depósito: <strong>${escapeHtml(opts.minimoDeposito)}</strong>
+        </td>
+      </tr>
+    </table>
+
+    <h2 style="margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#9f1239;">
+      Pasos a seguir
+    </h2>
+    <ol style="margin:0 0 18px;padding-left:20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.7;color:#44403c;">
+      <li style="margin-bottom:8px;"><strong>Realiza el pago</strong> (reserva mínima o importe completo) a la cuenta indicada abajo.</li>
+      <li style="margin-bottom:8px;">En el <strong>concepto</strong> escribe tu <strong>nombre y apellidos</strong>.</li>
+      <li style="margin-bottom:8px;">Entra en la web → <strong>Continuar registro</strong>.</li>
+      <li style="margin-bottom:8px;">Localiza tu ficha con los <strong>últimos 4 dígitos</strong> de tu móvil o con tu ID de registro.</li>
+      <li style="margin-bottom:8px;"><strong>Sube el comprobante</strong> (foto o PDF) e indica el importe depositado.</li>
+      <li>Espera la <strong>revisión del equipo</strong>. Cuando aprueben el pago podrás obtener tu código QR.</li>
+    </ol>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 16px;background:#fafafa;border:1px solid #e7e5e4;border-radius:12px;">
+      <tr>
+        <td style="padding:16px 18px;">
+          <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#9f1239;font-weight:700;">
+            Cuenta para el pago
+          </p>
+          <p style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;color:#1c1917;">
+            ${escapeHtml(CUENTA_DEPOSITO_TITULAR)}
+          </p>
+          <p style="margin:0;font-family:Consolas,'Courier New',monospace;font-size:16px;font-weight:700;letter-spacing:0.04em;color:#1c1917;">
+            ${CUENTA_DEPOSITO_IBAN}
+          </p>
+          <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#78716c;">
+            ${escapeHtml(CUENTA_DEPOSITO_TITULAR_HINT)}
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#78716c;">
+      ID de registro (guárdalo por si lo necesitas):<br />
+      <strong style="font-family:Consolas,'Courier New',monospace;color:#1c1917;">${escapeHtml(opts.registroId)}</strong>
+    </p>
+
+    ${botonCta(continuarUrl, "Ir a Continuar registro")}
+    <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#78716c;">
+      También puedes ver el estado de tu inscripción:<br />
+      <a href="${escapeHtml(estadoUrl)}" style="color:#9f1239;">${escapeHtml(estadoUrl)}</a>
+    </p>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:22px 0 0;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;">
+      <tr>
+        <td style="padding:14px 16px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.55;color:#9f1239;">
+          <strong>Recordatorios automáticos</strong><br />
+          Si aún no has subido ningún comprobante, recibirás correos de recordatorio con esta misma cuenta bancaria.
+          La frecuencia será de <strong>${escapeHtml(frecuenciaTxt)}</strong> según la proximidad al Encuentro
+          (25 al 27 de septiembre de 2026). Al subir un comprobante válido, dejarás de recibirlos.
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const text = [
+    `Estimada ${nombre},`,
+    "",
+    "Tu inscripción al Encuentro Nacional de Mujeres IERE 2026 (25 al 27 de septiembre de 2026) se ha guardado correctamente.",
+    "",
+    `Inscripción: ${opts.etiquetaTarifa} · total ${opts.importeTotal} · reserva mínima ${opts.minimoDeposito}`,
+    "",
+    "Pasos:",
+    "1. Realiza el pago a la cuenta indicada.",
+    "2. Concepto: tu nombre y apellidos.",
+    "3. Entra en Continuar registro en la web.",
+    "4. Localiza tu ficha (últimos 4 dígitos del móvil o ID).",
+    "5. Sube el comprobante.",
+    "6. Espera la revisión del equipo para el código QR.",
+    "",
+    `Titular: ${CUENTA_DEPOSITO_TITULAR}`,
+    `Cuenta: ${CUENTA_DEPOSITO_IBAN}`,
+    CUENTA_DEPOSITO_TITULAR_HINT,
+    "",
+    `ID de registro: ${opts.registroId}`,
+    `Continuar registro: ${continuarUrl}`,
+    `Estado: ${estadoUrl}`,
+    "",
+    `Recordatorios si no hay depósito: ${frecuenciaTxt}.`,
+    "Este correo es automático: no respondas a este mensaje.",
+  ].join("\n");
+
+  return {
+    subject,
+    html: layoutEmail({
+      preheader: "Inscripción recibida. Te indicamos la cuenta y los pasos para completar el pago.",
+      title: "Tu inscripción ha sido recibida",
       bodyHtml,
     }),
     text,

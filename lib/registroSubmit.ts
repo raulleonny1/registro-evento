@@ -76,6 +76,17 @@ async function guardarPorCliente(payload: RegistroSubmitPayload): Promise<string
     SUBMIT_TIMEOUT_MS,
     "El registro",
   );
+
+  try {
+    await fetch("/api/email/confirmacion-registro", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ registroId: ref.id }),
+    });
+  } catch {
+    /* no bloquear el registro si falla el correo */
+  }
+
   return ref.id;
 }
 
