@@ -39,7 +39,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
     const t = setTimeout(() => {
       reject(
         new Error(
-          `${label} superó ${Math.round(ms / 1000)} s. Revisa la conexión o prueba con otro archivo o PDF.`,
+          `${label} super? ${Math.round(ms / 1000)} s. Revisa la conexi?n o prueba con otro archivo o PDF.`,
         ),
       );
     }, ms);
@@ -56,7 +56,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
-/** Cámara / explorador: inferir extensión si falta nombre. */
+/** C?mara / explorador: inferir extensi?n si falta nombre. */
 function inferExt(file: File): string {
   const fromName = file.name?.split(".").pop();
   if (fromName && fromName.length <= 8 && /^[a-z0-9]+$/i.test(fromName)) {
@@ -72,7 +72,7 @@ function inferExt(file: File): string {
 }
 
 /**
- * Sube el archivo a Cloudinary vía API Route (el secreto no sale al navegador).
+ * Sube el archivo a Cloudinary v?a API Route (el secreto no sale al navegador).
  * Usa XHR para poder mostrar progreso de subida al servidor.
  */
 function uploadToCloudinary(
@@ -104,12 +104,12 @@ function uploadToCloudinary(
         }
         reject(new Error(data.error || `Error del servidor (${xhr.status})`));
       } catch {
-        reject(new Error("Respuesta inválida del servidor."));
+        reject(new Error("Respuesta inv?lida del servidor."));
       }
     };
 
     xhr.onerror = () => reject(new Error("Error de red al subir."));
-    xhr.ontimeout = () => reject(new Error("La subida tardó demasiado (tiempo agotado)."));
+    xhr.ontimeout = () => reject(new Error("La subida tard? demasiado (tiempo agotado)."));
     xhr.send(formData);
   });
 }
@@ -163,14 +163,14 @@ export function SubirComprobante({ id, onUploaded }: Props) {
     }
     if (f.size > MAX_BYTES) {
       setError(
-        `El archivo es demasiado grande (máx. ${Math.round(MAX_BYTES / (1024 * 1024))} MB). Prueba con otra foto o un PDF.`,
+        `El archivo es demasiado grande (m?x. ${Math.round(MAX_BYTES / (1024 * 1024))} MB). Prueba con otra foto o un PDF.`,
       );
       return;
     }
 
     const monto = parseMontoEuros(montoStr);
     if (monto == null) {
-      setError("Indica cuánto has depositado en este comprobante (ej. 35 o 35,50).");
+      setError("Indica cu?nto has depositado en este comprobante (ej. 35 o 35,50).");
       return;
     }
 
@@ -178,7 +178,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
     try {
       snapPre = await getDoc(doc(db, "registros", id));
     } catch {
-      setError("No se pudo leer tu registro. Revisa la conexión.");
+      setError("No se pudo leer tu registro. Revisa la conexi?n.");
       return;
     }
     const pre = (snapPre.data() ?? {}) as Record<string, unknown>;
@@ -193,13 +193,13 @@ export function SubirComprobante({ id, onUploaded }: Props) {
     const pendiente = pendienteEuros(prevOk, tarifaPre);
     const minimoPrimero = minimoPrimerDepositoEuros(tarifaPre);
     if (prevOk < 0.01 && monto + 0.001 < minimoPrimero) {
-      setError(`El primer depósito debe ser al menos ${formatEuros(minimoPrimero)}.`);
+      setError(`El primer dep?sito debe ser al menos ${formatEuros(minimoPrimero)}.`);
       return;
     }
     if (monto > pendiente + 0.001) {
       setError(
         pendiente < 0.01
-          ? "El importe ya está cubierto. Si es un error, contacta con organización."
+          ? "El importe ya est? cubierto. Si es un error, contacta con organizaci?n."
           : `Este comprobante no puede superar lo pendiente (${formatEuros(pendiente)}).`,
       );
       return;
@@ -223,6 +223,17 @@ export function SubirComprobante({ id, onUploaded }: Props) {
         FIRESTORE_TIMEOUT_MS,
         "Guardar en la base de datos",
       );
+
+      // Aviso por correo (no bloquea la subida si falla Resend).
+      try {
+        await fetch("/api/email/comprobante-recibido", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ registroId: id }),
+        });
+      } catch {
+        /* silencioso */
+      }
 
       setSuccess(true);
       setFile(null);
@@ -268,9 +279,9 @@ export function SubirComprobante({ id, onUploaded }: Props) {
       <div className="flex max-w-md flex-col gap-3 rounded-xl border border-emerald-500/40 bg-emerald-50/90 px-4 py-4 text-sm text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-100">
         <p className="text-base font-semibold">Comprobante enviado correctamente</p>
         <p className="leading-relaxed">
-          Tu pago ha pasado a revisión. <strong className="font-semibold">Espera a que el equipo lo apruebe</strong>{" "}
-          para poder obtener el <strong className="font-semibold">código QR y el acceso al evento</strong>: hasta
-          entonces no estarán disponibles.
+          Tu pago ha pasado a revisi?n. <strong className="font-semibold">Espera a que el equipo lo apruebe</strong>{" "}
+          para poder obtener el <strong className="font-semibold">c?digo QR y el acceso al evento</strong>: hasta
+          entonces no estar?n disponibles.
         </p>
         <p className="leading-relaxed text-emerald-900 dark:text-emerald-200/95">
           Puedes seguir el estado en{" "}
@@ -280,7 +291,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
           >
             tu registro
           </Link>
-          . Cuando figure como aprobado, ahí tendrás el enlace al ticket y al código.
+          . Cuando figure como aprobado, ah? tendr?s el enlace al ticket y al c?digo.
         </p>
       </div>
     );
@@ -290,7 +301,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
     <form noValidate onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
       {depositadoActual != null && pendiente != null && (
         <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900/50 dark:text-zinc-200">
-          {etiquetaTarifaInscripcion(tarifaActiva)}. Total inscripción:{" "}
+          {etiquetaTarifaInscripcion(tarifaActiva)}. Total inscripci?n:{" "}
           {formatEuros(totalEntrada)}. Llevas{" "}
           <span className="font-semibold">{formatEuros(depositadoActual)}</span> registrados.
           {pendiente > 0.01 ? (
@@ -306,13 +317,13 @@ export function SubirComprobante({ id, onUploaded }: Props) {
           )}
           <span className="mt-1 block text-xs text-zinc-600 dark:text-zinc-400">
             {parseComiteOrganizador(tarifaActiva.comiteOrganizador)
-              ? `Inscripción comité: ${formatEuros(totalEntrada)} (importe completo).`
-              : `Mínimo de inscripción: ${formatEuros(minimoPrimerDepositoEuros(tarifaActiva))}.`}
+              ? `Inscripci?n comit?: ${formatEuros(totalEntrada)} (importe completo).`
+              : `M?nimo de inscripci?n: ${formatEuros(minimoPrimerDepositoEuros(tarifaActiva))}.`}
           </span>
         </p>
       )}
       <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-        Importe de este comprobante (€)
+        Importe de este comprobante (EUR)
         <input
           type="text"
           {...iosDecimalMoneyInputProps}
@@ -328,7 +339,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
           className="min-h-[44px] rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
         />
         <span className="text-xs font-normal text-zinc-500 dark:text-zinc-400">
-          Indica solo lo que corresponde a este justificante (puedes pagar el resto después).
+          Indica solo lo que corresponde a este justificante (puedes pagar el resto despu?s).
         </span>
       </label>
       <div className="flex flex-col gap-3">
@@ -344,7 +355,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
           />
         </label>
         <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-          Tomar foto con la cámara
+          Tomar foto con la c?mara
           <input
             ref={cameraInputRef}
             type="file"
@@ -358,7 +369,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
       </div>
       {file && (
         <p className="text-xs text-zinc-600 dark:text-zinc-400">
-          Archivo: <span className="font-medium">{file.name || `foto.${inferExt(file)}`}</span> —{" "}
+          Archivo: <span className="font-medium">{file.name || `foto.${inferExt(file)}`}</span> {" "}
           {(file.size / 1024).toFixed(0)} KB
         </p>
       )}
@@ -379,7 +390,7 @@ export function SubirComprobante({ id, onUploaded }: Props) {
                 className="size-4 shrink-0 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-zinc-400 dark:border-t-zinc-900"
                 aria-hidden
               />
-              Subiendo…
+              Subiendo
               {progressPct != null ? (
                 <span className="tabular-nums text-white/90 dark:text-zinc-800">{progressPct}%</span>
               ) : null}

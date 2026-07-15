@@ -1,7 +1,9 @@
 import Link from "next/link";
-
-/** Cuenta para depósito o transferencia (mostrada tras inscribirse). */
-const CUENTA_DEPOSITO_IBAN = "ES03 0049 6791 7125 1602 4796";
+import {
+  CUENTA_DEPOSITO_IBAN,
+  CUENTA_DEPOSITO_TITULAR,
+  CUENTA_DEPOSITO_TITULAR_HINT,
+} from "@/lib/cuentaDeposito";
 
 export const metadata = {
   title: "Registro recibido — Encuentro IERE 2026",
@@ -42,14 +44,17 @@ export default async function RegistroExitoPage({
             <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">
               Cuenta para el pago
             </p>
+            <p className="mt-2 text-sm font-semibold text-zinc-900 dark:text-white">
+              {CUENTA_DEPOSITO_TITULAR}
+            </p>
             <p
-              className="mt-2 font-mono text-base font-semibold tracking-wide text-zinc-900 dark:text-white"
+              className="mt-1.5 font-mono text-base font-semibold tracking-wide text-zinc-900 dark:text-white"
               aria-label={`IBAN ${CUENTA_DEPOSITO_IBAN.replace(/\s/g, "")}`}
             >
               {CUENTA_DEPOSITO_IBAN}
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-              Indica en el concepto tu nombre y apellidos para identificar el pago.
+              {CUENTA_DEPOSITO_TITULAR_HINT}
             </p>
           </div>
           {id ? (
