@@ -1,14 +1,28 @@
 rules_version = '2';
 
-// Reemplaza en Firebase Console → Firestore → Reglas → Publicar
+// Publicar en Firebase Console → Firestore → Reglas → Publicar
+// O: firebase deploy --only firestore:rules
 //
-// Versión abierta (sin login): todo el mundo puede leer/escribir cualquier documento.
-// Solo para desarrollo o eventos cerrados; endurece reglas antes de exponer datos sensibles.
+// Esta app NO usa Firebase Auth: el admin y el registro hablan con Firestore
+// desde el navegador (SDK cliente). Por eso la colección «registros» debe permitir
+// lectura y escritura públicas, o el formulario, Continuar registro, comprobantes
+// y el panel admin fallarían con «permission-denied».
+//
+// La ruta /api/registro (servidor) usa cuenta de servicio y NO depende de estas reglas.
+//
+// Seguridad: cualquiera con la config del proyecto puede leer/editar/borrar registros.
+// Aceptable para un evento cerrado con URL no indexada; no exponer datos sensibles
+// más allá de lo necesario.
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
+
+    // Inscripciones: create (registro nuevo), read (continuar, estado, QR, admin),
+    // update (comprobante, modalidad, check-in, aprobar/rechazar, comité), delete (admin).
+    match /registros/{registroId} {
       allow read, write: if true;
     }
+
+    // Cualquier otra colección: denegado (la app no las usa).
   }
 }

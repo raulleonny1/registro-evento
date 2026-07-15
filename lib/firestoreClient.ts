@@ -10,7 +10,7 @@ export function getFirestoreLazy(): Promise<{ fs: FirestoreMod; db: Firestore }>
     cache = Promise.all([
       import("firebase/firestore"),
       import("@/lib/firebase"),
-    ]).then(([fs, { db }]) => ({ fs, db }));
+    ]).then(([fs, { getDb }]) => ({ fs, db: getDb() }));
   }
   return cache;
 }

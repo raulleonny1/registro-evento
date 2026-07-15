@@ -1,5 +1,5 @@
 import { collection, getDocs, limit, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getDb } from "@/lib/firebase";
 import { movilEspanaCanonico } from "@/lib/comiteOrganizador";
 import { soloDigitos } from "@/lib/phoneDigits";
 
@@ -31,7 +31,7 @@ async function existePorCampo(
   valor: string,
 ): Promise<string | null> {
   const snap = await getDocs(
-    query(collection(db, "registros"), where(campo, "==", valor), limit(1)),
+    query(collection(getDb(), "registros"), where(campo, "==", valor), limit(1)),
   );
   if (snap.empty) return null;
   return snap.docs[0].id;

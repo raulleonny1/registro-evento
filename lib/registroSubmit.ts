@@ -1,5 +1,5 @@
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, addDoc, enableNetwork, serverTimestamp } from "firebase/firestore";
+import { getDb } from "@/lib/firebase";
 import { getFirebaseConfigError } from "@/lib/firebaseEnv";
 import { REGISTRO_ACEPTO_DATOS_EVENTO } from "@/lib/registroConsent";
 import { REGISTRO_ESTADOS } from "@/lib/registroEstados";
@@ -8,11 +8,7 @@ import {
   datosComiteEnFirestore,
   esMiembroComiteOrganizador,
 } from "@/lib/comiteOrganizador";
-import {
-  mensajeRegistroDuplicado,
-  normalizarWhatsappDigitos,
-  verificarRegistroDuplicado,
-} from "@/lib/registroDuplicados";
+import { normalizarWhatsappDigitos, mensajeRegistroDuplicado } from "@/lib/registroDuplicados";
 
 export type RegistroSubmitPayload = {
   nombre: string;
@@ -57,8 +53,8 @@ async function guardarPorCliente(payload: RegistroSubmitPayload): Promise<string
   const configErr = getFirebaseConfigError();
   if (configErr) throw new Error(configErr);
 
-  const dup = await verificarRegistroDuplicado(payload.email, payload.whatsapp);
-  if (dup.duplicado) throw new Error(mensajeRegistroDuplicado(dup));
+  const db = getDb();
+  await enableNetwork(db);
 
   const digitosNorm = normalizarWhatsappDigitos(payload.whatsapp);
   const comite = esMiembroComiteOrganizador(payload.whatsapp);

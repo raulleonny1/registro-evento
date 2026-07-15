@@ -21,9 +21,7 @@ import {
 } from "@/lib/eventoPrecio";
 import { esMiembroComiteOrganizador } from "@/lib/comiteOrganizador";
 import {
-  mensajeRegistroDuplicado,
   normalizarWhatsappDigitos,
-  verificarRegistroDuplicado,
   type ResultadoDuplicado,
 } from "@/lib/registroDuplicados";
 import { ComiteOrganizadorAviso } from "@/components/ComiteOrganizadorAviso";
@@ -254,13 +252,6 @@ export function RegistroForm() {
 
     setLoading(true);
     try {
-      const dup = await verificarRegistroDuplicado(emailNorm, wa);
-      if (dup.duplicado) {
-        setDuplicado(dup);
-        setError(mensajeRegistroDuplicado(dup));
-        return;
-      }
-
       const whatsappUltimos4 = ultimosDigitos(wa, 4);
       const registroId = await guardarRegistro({
         nombre: nombreApellidos.trim(),
@@ -276,7 +267,13 @@ export function RegistroForm() {
       }
       await router.push(`/registro/nuevo/exito?id=${encodeURIComponent(registroId)}`);
     } catch (err) {
-      setError(formatFirebaseError(err));
+      const msg = formatFirebaseError(err);
+      if (msg.includes("correo electrónico")) {
+        setDuplicado({ duplicado: true, motivo: "email" });
+      } else if (msg.includes("número de móvil")) {
+        setDuplicado({ duplicado: true, motivo: "whatsapp" });
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
