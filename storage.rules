@@ -1,16 +1,34 @@
 rules_version = '2';
 
-// Comprobantes subidos a comprobantes/{registroId}/...
-// Ajusta en producción (tamaño, tipos MIME, etc.).
+// Comprobantes: comprobantes/{registroId}/{nombreArchivo}
 //
-// Despliegue: Firebase Console → Storage → Reglas
+// Esta app NO usa Firebase Auth (igual que Firestore). Por eso la carpeta
+// «comprobantes» permite lectura/escritura pública; el resto del bucket queda denegado.
+//
+// Despliegue: Firebase Console → Storage → Rules → Publish
 // O CLI: firebase deploy --only storage
 
 service firebase.storage {
   match /b/{bucket}/o {
-    match /comprobantes/{allPaths=**} {
-      allow read, write: if true;
+    match /comprobantes/{registroId}/{fileName} {
+      // Ver comprobante (admin, estado, enlace guardado en Firestore)
+      allow read: if true;
+
+      // Subida desde Continuar registro (imagen o PDF, máx. 15 MB)
+      allow create, update: if request.resource.size > 0
+        && request.resource.size < 15 * 1024 * 1024
+        && (
+          request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf'
+          || request.resource.contentType == 'application/x-pdf'
+          || request.resource.contentType == 'application/octet-stream'
+        );
+
+      // Borrado desde el panel admin
+      allow delete: if true;
     }
+
+    // Cualquier otra ruta del bucket: denegado
     match /{allPaths=**} {
       allow read, write: if false;
     }
