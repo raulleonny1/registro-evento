@@ -183,6 +183,7 @@ export function RegistroForm() {
   const [modalidadRegistro, setModalidadRegistro] = useState<ModalidadRegistro>(
     MODALIDADES_REGISTRO.completo_25_27,
   );
+  const [observaciones, setObservaciones] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [duplicado, setDuplicado] = useState<ResultadoDuplicado | null>(null);
   const [loading, setLoading] = useState(false);
@@ -261,6 +262,7 @@ export function RegistroForm() {
         whatsappUltimos4,
         parroquia: parroquiaPayload,
         modalidadRegistro,
+        observaciones: observaciones.trim(),
       });
       if (typeof window !== "undefined") {
         sessionStorage.removeItem(SESSION_RGPD_ACEPTO);
@@ -465,6 +467,26 @@ export function RegistroForm() {
           {esOtra
             ? "Los datos manuales se revisan con el equipo IERE."
             : "Si no ves tu comunidad, elige «Otra» al final del listado y escribe área, parroquia e iglesia."}
+        </p>
+      </div>
+      <div className="space-y-2">
+        <label htmlFor="reg-observaciones" className={labelClass}>
+          Observaciones{" "}
+          <span className="font-normal text-zinc-500 dark:text-zinc-400">(opcional)</span>
+        </label>
+        <textarea
+          id="reg-observaciones"
+          name="observaciones"
+          rows={4}
+          maxLength={800}
+          enterKeyHint="done"
+          value={observaciones}
+          onChange={(e) => setObservaciones(e.target.value)}
+          placeholder="Ej. vegetariana, movilidad reducida, alergias alimentarias u otras necesidades"
+          className={`${fieldClass} min-h-[120px] resize-y py-3`}
+        />
+        <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+          Indica lo que el equipo deba tener en cuenta para tu asistencia.
         </p>
       </div>
       {error && (

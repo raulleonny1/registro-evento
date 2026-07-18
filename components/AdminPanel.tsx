@@ -45,6 +45,7 @@ type Row = {
   comiteOrganizador: boolean;
   /** Consentimiento RGPD al inscribirse (nuevos registros). */
   aceptoDatosEvento: boolean | null;
+  observaciones?: string;
 };
 
 function EstadoBadge({ estado, light }: { estado: string; light?: boolean }) {
@@ -186,6 +187,10 @@ export default function AdminPanel() {
         },
         comiteOrganizador: x[REGISTRO_COMITE_ORGANIZADOR] === true,
         aceptoDatosEvento,
+        observaciones:
+          typeof x.observaciones === "string" && x.observaciones.trim()
+            ? x.observaciones.trim()
+            : undefined,
       };
     });
     list.sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -704,6 +709,16 @@ export default function AdminPanel() {
                       </dt>
                       <dd className="text-xs leading-snug text-zinc-600">{r.parroquiaLabel}</dd>
                     </div>
+                    {r.observaciones ? (
+                      <div className="sm:col-span-2">
+                        <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                          Observaciones
+                        </dt>
+                        <dd className="mt-1 whitespace-pre-wrap text-sm leading-snug text-zinc-700">
+                          {r.observaciones}
+                        </dd>
+                      </div>
+                    ) : null}
                   </dl>
                   {r.comprobanteURL && (
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">

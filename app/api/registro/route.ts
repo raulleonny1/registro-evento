@@ -11,6 +11,7 @@ import {
   verificarRegistroDuplicadoAdmin,
 } from "@/lib/registroDuplicadosServer";
 import { enviarConfirmacionRegistroEmail } from "@/lib/enviarConfirmacionRegistroEmail";
+import { avisarAdminNuevoRegistro } from "@/lib/avisarAdminEmail";
 import { isResendConfigured } from "@/lib/resendMail";
 
 export const runtime = "nodejs";
@@ -31,6 +32,7 @@ type Body = {
   whatsappUltimos4?: string;
   parroquia?: ParroquiaBody;
   modalidadRegistro?: string;
+  observaciones?: string;
 };
 
 function isModalidad(v: string): v is ModalidadRegistro {
@@ -63,6 +65,8 @@ export async function POST(request: NextRequest) {
   const whatsappUltimos4 =
     typeof body.whatsappUltimos4 === "string" ? body.whatsappUltimos4.trim() : "";
   const modalidad = typeof body.modalidadRegistro === "string" ? body.modalidadRegistro : "";
+  const observaciones =
+    typeof body.observaciones === "string" ? body.observaciones.trim().slice(0, 800) : "";
 
   const par = body.parroquia;
   const area = typeof par?.area === "string" ? par.area.trim() : "";
@@ -102,6 +106,7 @@ export async function POST(request: NextRequest) {
         ...(par?.manual ? { manual: true } : {}),
       },
       modalidadRegistro: modalidad,
+      ...(observaciones ? { observaciones } : {}),
       ...(comite ? datosComiteEnFirestore() : {}),
       estado: REGISTRO_ESTADOS.pendiente_pago,
       fecha: FieldValue.serverTimestamp(),
@@ -118,6 +123,18 @@ export async function POST(request: NextRequest) {
         comite,
       }).catch((err) => {
         console.error("[api/registro] confirmacion email", err);
+      });
+      void avisarAdminNuevoRegistro({
+        registroId: ref.id,
+        nombre,
+        email,
+        whatsapp,
+        modalidadRegistro: modalidad,
+        comite,
+        parroquiaLinea: [area, parroquia, iglesia].filter(Boolean).join(" · "),
+        observaciones: observaciones || undefined,
+      }).catch((err) => {
+        console.error("[api/registro] aviso admin", err);
       });
     }
 

@@ -23,6 +23,8 @@ export type RegistroSubmitPayload = {
     manual?: boolean;
   };
   modalidadRegistro: ModalidadRegistro;
+  /** Opcional: dieta, movilidad, alergias, etc. */
+  observaciones?: string;
 };
 
 const SUBMIT_TIMEOUT_MS = 35_000;
@@ -58,6 +60,8 @@ async function guardarPorCliente(payload: RegistroSubmitPayload): Promise<string
 
   const digitosNorm = normalizarWhatsappDigitos(payload.whatsapp);
   const comite = esMiembroComiteOrganizador(payload.whatsapp);
+  const obs =
+    typeof payload.observaciones === "string" ? payload.observaciones.trim().slice(0, 800) : "";
   const ref = await withTimeout(
     addDoc(collection(db, "registros"), {
       nombre: payload.nombre,
@@ -67,6 +71,7 @@ async function guardarPorCliente(payload: RegistroSubmitPayload): Promise<string
       whatsappUltimos4: payload.whatsappUltimos4,
       parroquia: payload.parroquia,
       modalidadRegistro: payload.modalidadRegistro,
+      ...(obs ? { observaciones: obs } : {}),
       ...(comite ? datosComiteEnFirestore() : {}),
       estado: REGISTRO_ESTADOS.pendiente_pago,
       fecha: serverTimestamp(),

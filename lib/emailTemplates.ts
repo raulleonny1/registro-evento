@@ -416,3 +416,155 @@ export function emailComprobanteRecibido(opts: {
     text,
   };
 }
+
+/** Aviso interno para la administradora (Jessica). */
+export function emailAvisoAdminNuevoRegistro(opts: {
+  nombre: string;
+  email: string;
+  whatsapp?: string;
+  registroId: string;
+  etiquetaTarifa?: string;
+  parroquiaLinea?: string;
+  observaciones?: string;
+}): { subject: string; html: string; text: string } {
+  const base = getAppBaseUrl();
+  const adminUrl = `${base}/admin`;
+  const estadoUrl = `${base}/estado/${encodeURIComponent(opts.registroId)}`;
+  const nombre = opts.nombre.trim() || "(sin nombre)";
+  const email = opts.email.trim() || "(sin correo)";
+  const whatsapp = (opts.whatsapp ?? "").trim();
+  const tarifa = (opts.etiquetaTarifa ?? "").trim();
+  const parroquia = (opts.parroquiaLinea ?? "").trim();
+  const observaciones = (opts.observaciones ?? "").trim();
+
+  const subject = `Nueva inscripción: ${nombre}`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65;color:#44403c;">
+      Hola Jessica,
+    </p>
+    <p style="margin:0 0 18px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65;color:#44403c;">
+      Hay una <strong style="color:#1c1917;">nueva inscripción</strong> en el Encuentro IERE 2026.
+    </p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 16px;background:#fafafa;border:1px solid #e7e5e4;border-radius:12px;">
+      <tr>
+        <td style="padding:16px 18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.7;color:#44403c;">
+          <strong>Nombre:</strong> ${escapeHtml(nombre)}<br />
+          <strong>Correo:</strong> ${escapeHtml(email)}<br />
+          ${whatsapp ? `<strong>Móvil:</strong> ${escapeHtml(whatsapp)}<br />` : ""}
+          ${tarifa ? `<strong>Tarifa:</strong> ${escapeHtml(tarifa)}<br />` : ""}
+          ${parroquia ? `<strong>Parroquia:</strong> ${escapeHtml(parroquia)}<br />` : ""}
+          ${observaciones ? `<strong>Observaciones:</strong> ${escapeHtml(observaciones)}<br />` : ""}
+          <strong>ID:</strong> <span style="font-family:Consolas,'Courier New',monospace;">${escapeHtml(opts.registroId)}</span>
+        </td>
+      </tr>
+    </table>
+    ${botonCta(adminUrl, "Abrir panel de administración")}
+    <p style="margin:12px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#78716c;">
+      Ficha: <a href="${escapeHtml(estadoUrl)}" style="color:#9f1239;">${escapeHtml(estadoUrl)}</a>
+    </p>
+  `;
+
+  const text = [
+    "Hola Jessica,",
+    "",
+    "Nueva inscripción en el Encuentro IERE 2026.",
+    `Nombre: ${nombre}`,
+    `Correo: ${email}`,
+    whatsapp ? `Móvil: ${whatsapp}` : "",
+    tarifa ? `Tarifa: ${tarifa}` : "",
+    parroquia ? `Parroquia: ${parroquia}` : "",
+    observaciones ? `Observaciones: ${observaciones}` : "",
+    `ID: ${opts.registroId}`,
+    "",
+    `Admin: ${adminUrl}`,
+    `Estado: ${estadoUrl}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return {
+    subject,
+    html: layoutEmail({
+      preheader: `Nueva inscripción de ${nombre}.`,
+      title: "Nueva inscripción recibida",
+      bodyHtml,
+    }),
+    text,
+  };
+}
+
+export function emailAvisoAdminComprobante(opts: {
+  nombre: string;
+  email: string;
+  registroId: string;
+  montoDepositado?: string;
+  comprobanteURL?: string;
+}): { subject: string; html: string; text: string } {
+  const base = getAppBaseUrl();
+  const adminUrl = `${base}/admin`;
+  const estadoUrl = `${base}/estado/${encodeURIComponent(opts.registroId)}`;
+  const nombre = opts.nombre.trim() || "(sin nombre)";
+  const email = opts.email.trim() || "(sin correo)";
+  const monto = (opts.montoDepositado ?? "").trim();
+  const url = (opts.comprobanteURL ?? "").trim();
+
+  const subject = `Comprobante subido: ${nombre}`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65;color:#44403c;">
+      Hola Jessica,
+    </p>
+    <p style="margin:0 0 18px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65;color:#44403c;">
+      Se ha subido un <strong style="color:#1c1917;">comprobante de pago</strong> y la ficha está en revisión.
+    </p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 16px;background:#fafafa;border:1px solid #e7e5e4;border-radius:12px;">
+      <tr>
+        <td style="padding:16px 18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.7;color:#44403c;">
+          <strong>Nombre:</strong> ${escapeHtml(nombre)}<br />
+          <strong>Correo:</strong> ${escapeHtml(email)}<br />
+          ${monto ? `<strong>Importe acumulado registrado:</strong> ${escapeHtml(monto)}<br />` : ""}
+          <strong>ID:</strong> <span style="font-family:Consolas,'Courier New',monospace;">${escapeHtml(opts.registroId)}</span>
+        </td>
+      </tr>
+    </table>
+    ${botonCta(adminUrl, "Revisar en el panel")}
+    ${
+      url
+        ? `<p style="margin:12px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#78716c;">
+            Comprobante:<br />
+            <a href="${escapeHtml(url)}" style="color:#9f1239;">${escapeHtml(url)}</a>
+          </p>`
+        : ""
+    }
+    <p style="margin:12px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#78716c;">
+      Ficha: <a href="${escapeHtml(estadoUrl)}" style="color:#9f1239;">${escapeHtml(estadoUrl)}</a>
+    </p>
+  `;
+
+  const text = [
+    "Hola Jessica,",
+    "",
+    "Se ha subido un comprobante de pago (ficha en revisión).",
+    `Nombre: ${nombre}`,
+    `Correo: ${email}`,
+    monto ? `Importe acumulado: ${monto}` : "",
+    `ID: ${opts.registroId}`,
+    url ? `Comprobante: ${url}` : "",
+    "",
+    `Admin: ${adminUrl}`,
+    `Estado: ${estadoUrl}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return {
+    subject,
+    html: layoutEmail({
+      preheader: `Comprobante de ${nombre} listo para revisar.`,
+      title: "Comprobante subido",
+      bodyHtml,
+    }),
+    text,
+  };
+}

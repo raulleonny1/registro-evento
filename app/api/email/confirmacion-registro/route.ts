@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminFirestore, isFirebaseAdminConfigured } from "@/lib/firebaseAdmin";
 import { enviarConfirmacionRegistroEmail } from "@/lib/enviarConfirmacionRegistroEmail";
+import { avisarAdminNuevoRegistro } from "@/lib/avisarAdminEmail";
 import { parseComiteOrganizador } from "@/lib/comiteOrganizador";
 import { normalizeModalidadRegistro } from "@/lib/eventoPrecio";
 import { isResendConfigured } from "@/lib/resendMail";
@@ -51,6 +52,28 @@ export async function POST(request: NextRequest) {
       email,
       modalidadRegistro: normalizeModalidadRegistro(x.modalidadRegistro),
       comite: parseComiteOrganizador(x.comiteOrganizador),
+    });
+
+    const par = (x.parroquia ?? {}) as Record<string, unknown>;
+    const parroquiaLinea = [par.area, par.parroquia, par.iglesia]
+      .map((v) => (typeof v === "string" ? v.trim() : ""))
+      .filter(Boolean)
+      .join(" · ");
+
+    void avisarAdminNuevoRegistro({
+      registroId,
+      nombre: String(x.nombre ?? ""),
+      email,
+      whatsapp: typeof x.whatsapp === "string" ? x.whatsapp : undefined,
+      modalidadRegistro: normalizeModalidadRegistro(x.modalidadRegistro),
+      comite: parseComiteOrganizador(x.comiteOrganizador),
+      parroquiaLinea: parroquiaLinea || undefined,
+      observaciones:
+        typeof x.observaciones === "string" && x.observaciones.trim()
+          ? x.observaciones.trim()
+          : undefined,
+    }).catch((err) => {
+      console.error("[email/confirmacion-registro] aviso admin", err);
     });
 
     if (!res.ok) {

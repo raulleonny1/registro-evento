@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminFirestore, isFirebaseAdminConfigured } from "@/lib/firebaseAdmin";
 import { emailComprobanteRecibido } from "@/lib/emailTemplates";
+import { avisarAdminComprobante } from "@/lib/avisarAdminEmail";
 import { isResendConfigured, sendEmail } from "@/lib/resendMail";
 
 export const runtime = "nodejs";
@@ -43,8 +44,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, skipped: true, reason: "no_email" });
     }
 
+    const nombre = String(x.nombre ?? "");
+    const montoN = Number(x.montoDepositadoEuros ?? 0);
+    const comprobanteURL =
+      typeof x.comprobanteURL === "string" ? x.comprobanteURL : undefined;
+
     const plantilla = emailComprobanteRecibido({
-      nombre: String(x.nombre ?? ""),
+      nombre,
       registroId,
     });
     const res = await sendEmail({
@@ -52,6 +58,16 @@ export async function POST(request: NextRequest) {
       subject: plantilla.subject,
       html: plantilla.html,
       text: plantilla.text,
+    });
+
+    void avisarAdminComprobante({
+      registroId,
+      nombre,
+      email,
+      montoDepositadoEuros: Number.isFinite(montoN) ? montoN : undefined,
+      comprobanteURL,
+    }).catch((err) => {
+      console.error("[email/comprobante-recibido] aviso admin", err);
     });
 
     if (!res.ok) {
