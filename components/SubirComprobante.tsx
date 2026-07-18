@@ -195,11 +195,6 @@ export function SubirComprobante({ id, onUploaded }: Props) {
       [REGISTRO_PRECIO_INSCRIPCION_EUR]: pre[REGISTRO_PRECIO_INSCRIPCION_EUR],
     };
     const pendiente = pendienteEuros(prevOk, tarifaPre);
-    const minimoPrimero = minimoPrimerDepositoEuros(tarifaPre);
-    if (prevOk < 0.01 && monto + 0.001 < minimoPrimero) {
-      setError(`El primer depósito debe ser al menos ${formatEuros(minimoPrimero)}.`);
-      return;
-    }
     if (monto > pendiente + 0.001) {
       setError(
         pendiente < 0.01
