@@ -115,26 +115,30 @@ export async function POST(request: NextRequest) {
     });
 
     if (isResendConfigured()) {
-      void enviarConfirmacionRegistroEmail({
-        registroId: ref.id,
-        nombre,
-        email,
-        modalidadRegistro: modalidad,
-        comite,
-      }).catch((err) => {
-        console.error("[api/registro] confirmacion email", err);
-      });
-      void avisarAdminNuevoRegistro({
-        registroId: ref.id,
-        nombre,
-        email,
-        whatsapp,
-        modalidadRegistro: modalidad,
-        comite,
-        parroquiaLinea: [area, parroquia, iglesia].filter(Boolean).join(" · "),
-        observaciones: observaciones || undefined,
-      }).catch((err) => {
-        console.error("[api/registro] aviso admin", err);
+      await Promise.allSettled([
+        enviarConfirmacionRegistroEmail({
+          registroId: ref.id,
+          nombre,
+          email,
+          modalidadRegistro: modalidad,
+          comite,
+        }),
+        avisarAdminNuevoRegistro({
+          registroId: ref.id,
+          nombre,
+          email,
+          whatsapp,
+          modalidadRegistro: modalidad,
+          comite,
+          parroquiaLinea: [area, parroquia, iglesia].filter(Boolean).join(" · "),
+          observaciones: observaciones || undefined,
+        }),
+      ]).then((results) => {
+        for (const r of results) {
+          if (r.status === "rejected") {
+            console.error("[api/registro] email", r.reason);
+          }
+        }
       });
     }
 

@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       .filter(Boolean)
       .join(" · ");
 
-    void avisarAdminNuevoRegistro({
+    await avisarAdminNuevoRegistro({
       registroId,
       nombre: String(x.nombre ?? ""),
       email,

@@ -53,22 +53,23 @@ export async function POST(request: NextRequest) {
       nombre,
       registroId,
     });
-    const res = await sendEmail({
-      to: email,
-      subject: plantilla.subject,
-      html: plantilla.html,
-      text: plantilla.text,
-    });
-
-    void avisarAdminComprobante({
-      registroId,
-      nombre,
-      email,
-      montoDepositadoEuros: Number.isFinite(montoN) ? montoN : undefined,
-      comprobanteURL,
-    }).catch((err) => {
-      console.error("[email/comprobante-recibido] aviso admin", err);
-    });
+    const [res] = await Promise.all([
+      sendEmail({
+        to: email,
+        subject: plantilla.subject,
+        html: plantilla.html,
+        text: plantilla.text,
+      }),
+      avisarAdminComprobante({
+        registroId,
+        nombre,
+        email,
+        montoDepositadoEuros: Number.isFinite(montoN) ? montoN : undefined,
+        comprobanteURL,
+      }).catch((err) => {
+        console.error("[email/comprobante-recibido] aviso admin", err);
+      }),
+    ]);
 
     if (!res.ok) {
       return NextResponse.json({ ok: false, error: res.error }, { status: 502 });
