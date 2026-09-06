@@ -27,7 +27,8 @@ body {
 
 @media print {
   @page {
-    margin: 12mm;
+    size: A4 landscape;
+    margin: 8mm;
   }
   .no-print {
     display: none !important;
@@ -43,7 +44,31 @@ body {
     opacity: 1 !important;
     background: #ffffff !important;
     color: #18181b !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+  [data-admin-pdf="mobile"] {
+    display: none !important;
+  }
+  [data-admin-pdf="desktop"] {
+    display: block !important;
+    overflow: visible !important;
+  }
+  [data-admin-pdf="desktop"] .overflow-x-auto {
+    overflow: visible !important;
+  }
+  .admin-report-print-surface table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    font-size: 8.5pt !important;
+  }
+  .admin-report-print-surface th,
+  .admin-report-print-surface td {
+    white-space: normal !important;
+    word-break: break-word !important;
+    padding: 4pt 3pt !important;
   }
 }

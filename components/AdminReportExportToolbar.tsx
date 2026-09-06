@@ -5,9 +5,19 @@ import { useCallback, useState, type RefObject } from "react";
 type Props = {
   reportRef: RefObject<HTMLElement | null>;
   filenameBase: string;
+  onDownloadCsv?: () => void;
+  csvDisabled?: boolean;
+  /** Si se define, sustituye el PDF por captura del DOM (informe limpio). */
+  onDownloadPdf?: () => Promise<void>;
 };
 
-export function AdminReportExportToolbar({ reportRef, filenameBase }: Props) {
+export function AdminReportExportToolbar({
+  reportRef,
+  filenameBase,
+  onDownloadCsv,
+  csvDisabled,
+  onDownloadPdf,
+}: Props) {
   const [pdfBusy, setPdfBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +29,6 @@ export function AdminReportExportToolbar({ reportRef, filenameBase }: Props) {
       return;
     }
     try {
-      // Safari/iOS a veces necesita el print en el siguiente frame tras el gesto del usuario.
       requestAnimationFrame(() => {
         setTimeout(() => {
           window.print();
@@ -32,17 +41,21 @@ export function AdminReportExportToolbar({ reportRef, filenameBase }: Props) {
 
   const handlePdf = useCallback(async () => {
     setError(null);
-    const el = reportRef.current;
-    if (!el) {
-      setError("No hay contenido para exportar. Actualiza la página e inténtalo de nuevo.");
-      return;
-    }
-    if (el.offsetHeight < 8 && el.offsetWidth < 8) {
-      setError("El informe aún no está visible. Espera a que carguen los datos.");
-      return;
-    }
     setPdfBusy(true);
     try {
+      if (onDownloadPdf) {
+        await onDownloadPdf();
+        return;
+      }
+      const el = reportRef.current;
+      if (!el) {
+        setError("No hay contenido para exportar. Actualiza la página e inténtalo de nuevo.");
+        return;
+      }
+      if (el.offsetHeight < 8 && el.offsetWidth < 8) {
+        setError("El informe aún no está visible. Espera a que carguen los datos.");
+        return;
+      }
       const { exportHtmlToPdf } = await import("@/lib/exportAdminPdf");
       const date = new Date().toISOString().slice(0, 10);
       await exportHtmlToPdf(el, `${filenameBase}-${date}.pdf`);
@@ -52,7 +65,7 @@ export function AdminReportExportToolbar({ reportRef, filenameBase }: Props) {
     } finally {
       setPdfBusy(false);
     }
-  }, [reportRef, filenameBase]);
+  }, [reportRef, filenameBase, onDownloadPdf]);
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-2">
@@ -76,6 +89,17 @@ export function AdminReportExportToolbar({ reportRef, filenameBase }: Props) {
         >
           {pdfBusy ? "Generando PDF…" : "Descargar PDF"}
         </button>
+        {onDownloadCsv ? (
+          <button
+            type="button"
+            disabled={csvDisabled}
+            onClick={onDownloadCsv}
+            title="Excel / hojas de cálculo: incluye observaciones (comida, movilidad, etc.)"
+            className="touch-manipulation rounded-xl border border-emerald-600/50 bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:opacity-50 active:scale-[0.98]"
+          >
+            Descargar Excel (CSV)
+          </button>
+        ) : null}
       </div>
       {error && (
         <p

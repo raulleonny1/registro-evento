@@ -6,6 +6,7 @@ import { AdminReportExportToolbar } from "@/components/AdminReportExportToolbar"
 import { getFirestoreLazy } from "@/lib/firestoreClient";
 import { formatFirebaseError } from "@/lib/firebaseError";
 import { deleteComprobanteFiles } from "@/lib/deleteRegistroAssets";
+import { downloadCsv } from "@/lib/downloadCsv";
 import { labelParroquiaFirestore } from "@/lib/iereParroquias";
 import {
   etiquetaModalidadRegistro,
@@ -249,6 +250,57 @@ export default function AdminPanel() {
     }
   }, [mapRows]);
 
+  const descargarCsv = useCallback(() => {
+    if (!rows || rows.length === 0) {
+      setError("No hay registros para descargar.");
+      return;
+    }
+    setError(null);
+    const date = new Date().toISOString().slice(0, 10);
+    downloadCsv(
+      `registros-iere-2026-${date}.csv`,
+      [
+        "ID",
+        "Nombre",
+        "Email",
+        "WhatsApp",
+        "Parroquia",
+        "Modalidad / tarifa",
+        "Comité",
+        "Aviso datos (RGPD)",
+        "Estado",
+        "Pagado (EUR)",
+        "Pendiente (EUR)",
+        "Comprobante",
+        "Observaciones",
+      ],
+      rows.map((r) => [
+        r.id,
+        r.nombre,
+        r.email,
+        r.whatsapp,
+        r.parroquiaLabel,
+        etiquetaTarifaInscripcion(r.tarifa),
+        r.comiteOrganizador ? "Sí" : "No",
+        labelAceptoDatosEvento(r.aceptoDatosEvento),
+        etiquetaEstado(r.estado),
+        r.montoDepositadoEuros.toFixed(2).replace(".", ","),
+        pendienteEuros(r.montoDepositadoEuros, r.tarifa).toFixed(2).replace(".", ","),
+        r.comprobanteURL ? "Sí" : "No",
+        r.observaciones ?? "",
+      ]),
+    );
+  }, [rows]);
+
+  const descargarPdf = useCallback(async () => {
+    if (!rows || rows.length === 0) {
+      throw new Error("No hay registros para exportar.");
+    }
+    const { exportRegistrosPdf } = await import("@/lib/exportRegistrosPdf");
+    const date = new Date().toISOString().slice(0, 10);
+    await exportRegistrosPdf(rows, generadoEn, `registros-iere-2026-${date}.pdf`);
+  }, [rows, generadoEn]);
+
   async function aprobar(registroId: string) {
     setBusyId(registroId);
     setError(null);
@@ -396,7 +448,13 @@ export default function AdminPanel() {
 
         <div className="no-print flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <AdminReportExportToolbar reportRef={reportRef} filenameBase="registros-iere-2026" />
+            <AdminReportExportToolbar
+              reportRef={reportRef}
+              filenameBase="registros-iere-2026"
+              onDownloadCsv={descargarCsv}
+              csvDisabled={!rows || rows.length === 0}
+              onDownloadPdf={descargarPdf}
+            />
             <p className="text-sm text-zinc-400">
               <span className="font-semibold text-white">{rows.length}</span>{" "}
               {rows.length === 1 ? "registro" : "registros"}
@@ -465,7 +523,7 @@ export default function AdminPanel() {
             className="hidden overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm md:block"
           >
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1180px] border-collapse text-left text-sm">
+              <table className="w-full min-w-[1380px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-zinc-200 bg-zinc-50/90">
                     <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
@@ -497,6 +555,9 @@ export default function AdminPanel() {
                     </th>
                     <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
                       Pendiente
+                    </th>
+                    <th className="min-w-[200px] px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+                      Observaciones
                     </th>
                     <th className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
                       Comprobante
@@ -557,6 +618,16 @@ export default function AdminPanel() {
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 tabular-nums text-amber-800">
                           {formatEuros(pendienteEuros(r.montoDepositadoEuros, r.tarifa))}
+                        </td>
+                        <td
+                          className="max-w-[280px] px-4 py-3 text-xs leading-snug text-zinc-700"
+                          title={r.observaciones || undefined}
+                        >
+                          {r.observaciones ? (
+                            <span className="whitespace-pre-wrap">{r.observaciones}</span>
+                          ) : (
+                            <span className="text-zinc-400">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {r.comprobanteURL ? (
@@ -709,16 +780,14 @@ export default function AdminPanel() {
                       </dt>
                       <dd className="text-xs leading-snug text-zinc-600">{r.parroquiaLabel}</dd>
                     </div>
-                    {r.observaciones ? (
-                      <div className="sm:col-span-2">
-                        <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
-                          Observaciones
-                        </dt>
-                        <dd className="mt-1 whitespace-pre-wrap text-sm leading-snug text-zinc-700">
-                          {r.observaciones}
-                        </dd>
-                      </div>
-                    ) : null}
+                    <div className="sm:col-span-2">
+                      <dt className="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+                        Observaciones
+                      </dt>
+                      <dd className="mt-1 whitespace-pre-wrap text-sm leading-snug text-zinc-700">
+                        {r.observaciones ? r.observaciones : "—"}
+                      </dd>
+                    </div>
                   </dl>
                   {r.comprobanteURL && (
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
